@@ -67,6 +67,11 @@ pub enum Expr {
         name: String,
         arguments: Vec<Expr>,
     },
+    VarAssign {
+        // a=(1+2)
+        name: String,
+        value: Box<Expr>,
+    },
 }
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -78,16 +83,11 @@ pub enum Stmt {
     Block {
         body: Vec<Stmt>,
     },
-    VarAssign {
-        // a=(1+2)
-        name: String,
-        value: Expr,
-    },
 
     FuncAssign {
         // define a (){}
         name: String,
-        arguments: Vec<String>,// okay this doesnt seems bad so that is enough
+        arguments: Vec<String>, // okay this doesnt seems bad so that is enough
         body: Vec<Stmt>,
     },
     // conditionals
@@ -107,14 +107,16 @@ pub enum Stmt {
     // loops
     ForLoop {
         // for(x=1;x<10;x++)
-        init: Option<Vec<Stmt>>,
-        condition: Option<Vec<Expr>>,
-        increment: Option<Vec<Stmt>>,
+        init: Vec<Expr>,
+        condition: Vec<Expr>,
+        is_bool: bool, 
+        increment: Vec<Expr>,
         body: Vec<Stmt>,
     },
     WhileLoop {
-        // for(x)
+        // while(x)
         condition: Vec<Expr>,
+        is_bool:bool,
         body: Vec<Stmt>,
     },
     // okay now i will make something simple

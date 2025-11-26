@@ -1,3 +1,10 @@
 a=1;
 b=1;
 print a+b;
+if a==2{
+   a=b;    
+}elif (a==3) {
+    a=b;
+}else {
+    a=b;
+}

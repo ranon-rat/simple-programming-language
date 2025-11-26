@@ -85,9 +85,27 @@ fn parse_statement_expr(
                             })
                         }
                         _ => {
-                            out.push(Expr::VarCall {
-                                name: variable_name.to_string(),
-                            });
+                            if *index + 1 >= program_tokens.len() {
+                                out.push(Expr::VarCall {
+                                    name: variable_name.to_string(),
+                                });
+                            }
+                            match &program_tokens[*index + 1] {
+                                Tokens::Equals => {
+                                    *index += 2; // a = x
+
+                                    let (expr_out, is_bool) =
+                                        parse_expression(program_tokens, index);
+                                    out.push(Expr::VarAssign {
+                                        name: variable_name.to_string(),
+                                        value: Box::from(Expr::Operations {
+                                            instructions: expr_out,
+                                            is_bool,
+                                        }),
+                                    });
+                                }
+                                _ => {}
+                            }
                         }
                     }
                 } //   single_statement(cell, program_tokens, out, index);
@@ -279,7 +297,7 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
 
     return (out, is_bool);
 }
-fn parse_if_statement(program_tokens: &Vec<Tokens>, out: &mut Vec<Stmt>, index: &mut usize) {
+fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
     if *index + 2 >= program_tokens.len() {
         return;
     }
@@ -385,7 +403,61 @@ fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
         _ => {}
     }
 }
+// we start from ( x
+fn parse_init_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Expr> {
+    let mut out: Vec<Expr> = Vec::new();
+    while *index < program_tokens.len() {
+        match &program_tokens[*index] {
+            Tokens::SemmiColon | Tokens::CloseParenthesis => {
+                return out;
+            }
+            _ => {
+                let (new, is_bool) = parse_expression(program_tokens, index);
+                out.push(Expr::Operations {
+                    instructions: new,
+                    is_bool: is_bool,
+                });
+            }
+        }
+        *index += 1;
+    }
+    return out;
+}
 
+fn parse_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
+    // we start after the for(
+    // i=1
+    let init = parse_init_for_loop(program_tokens, index);
+    // ;
+    *index += 1;
+    // i<10
+    let (condition, is_bool) = parse_expression(program_tokens, index);
+    // ;
+    *index += 1;
+    // i++
+    let increment = parse_init_for_loop(program_tokens, index);
+    // )
+    *index += 2;
+    let body = parse(program_tokens, index);
+    out.push(Stmt::ForLoop {
+        init,
+        condition: condition,
+        is_bool,
+        increment: increment,
+        body: body,
+    })
+}
+fn parse_while_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
+    // so while(
+    let (condition, is_bool) = parse_expression(program_tokens, index);
+    *index += 2; // ){
+    let body = parse(program_tokens, index);
+    out.push(Stmt::WhileLoop {
+        condition: condition,
+        body,
+        is_bool,
+    });
+}
 fn handle_statement(
     cell: &Tokens,
     program_tokens: &Vec<Tokens>,
@@ -395,10 +467,15 @@ fn handle_statement(
     if let Tokens::Statement(current) = cell {
         match current.as_str() {
             "if" => {
-                parse_if_statement(program_tokens, out, index);
+                parse_if_statement(program_tokens, index, out);
             }
-            "for" => {}
-            "while" => {}
+            "for" => {
+                parse_for_loop(program_tokens, index, out);
+            }
+            "while" => {
+                *index += 2;
+                parse_while_loop(program_tokens, index, out);
+            }
             "define" => {
                 *index += 1;
                 parse_def_function(program_tokens, index, out);
@@ -450,13 +527,13 @@ fn handle_statement(
                     Tokens::Equals => {
                         *index += 1;
                         let (expr_out, is_bool) = parse_expression(program_tokens, index);
-                        out.push(Stmt::VarAssign {
+                        out.push(Stmt::Expression(Expr::VarAssign {
                             name: current.to_string(),
-                            value: Expr::Operations {
+                            value: Box::from(Expr::Operations {
                                 instructions: expr_out,
                                 is_bool,
-                            },
-                        });
+                            }),
+                        }));
                     }
                     _ => {
                         let (expr_out, is_bool) = parse_expression(program_tokens, index);
@@ -476,6 +553,11 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
     while *index < tokens.len() {
         let cell = &tokens[*index];
         match cell {
+            Tokens::OpenCurlyBrackets => {
+                *index += 1;
+                let body = parse(tokens, index);
+                out.push(Stmt::Block { body })
+            }
             Tokens::CloseCurlyBrackets => {
                 return out;
             }
@@ -486,6 +568,13 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
                     is_bool: is_bool,
                 }));
             }
+            Tokens::OpenParenthesis => {
+                let (operations, is_bool) = parse_expression(tokens, index);
+                out.push(Stmt::Expression(Expr::Operations {
+                    instructions: operations,
+                    is_bool,
+                }));
+            }
             Tokens::Statement(_) => {
                 handle_statement(cell, tokens, &mut out, index);
             }
@@ -494,5 +583,5 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
         }
         *index += 1;
     }
-    out
+    return out;
 }

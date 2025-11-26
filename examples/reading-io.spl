@@ -1,0 +1,8 @@
+
+print "a: ";
+a=read();
+print "\nb: ";
+b=read();
+print "\n a+b=";
+print a+b;
+print "\n"; 

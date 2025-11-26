@@ -1,0 +1,8 @@
+define print_value(x){
+    print x;
+    print "\n";
+}
+define factorial (x){
+    if( x<=1)return 1;
+    return (f(x-1)*x);
+}

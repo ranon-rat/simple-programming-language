@@ -1,0 +1,79 @@
+{
+  "scopeName": "source.spl",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword" },
+    { "include": "#operator" },
+    { "include": "#function-def" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.spl",
+          "match": "//.*$"
+        }
+      ]
+    },
+
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.spl",
+          "match": "\"([^\"\\\\]|\\\\.)*\""
+        }
+      ]
+    },
+
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.spl",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.spl",
+          "match": "\\b(if|else|for|while|continue|break|halt|return)\\b"
+        },
+        {
+          "name": "keyword.declare.spl",
+          "match": "\\bdefine\\b"
+        }
+      ]
+    },
+
+    "operator": {
+      "name": "keyword.operator.spl",
+      "match": "(==|<=|>=|!=|&&|\\|\\||[+\\-*/=<>(){}!])"
+    },
+
+    "function-def": {
+      "patterns": [
+        {
+          "name": "entity.name.function.spl",
+          "match": "\\bdefine\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "entity.name.function.spl" }
+          }
+        }
+      ]
+    },
+
+    "identifier": {
+      "patterns": [
+        {
+          "name": "variable.other.spl",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}

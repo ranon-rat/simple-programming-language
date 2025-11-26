@@ -1,0 +1,14 @@
+print "what is your name?\n";
+name=read();
+blacklisted="ulises"
+if (name==blacklist){
+    print "fuck you\n"
+}else{
+   print "hello ";
+   print name;
+   print "\n";
+}
+
+
+
+// maybe i should just remplace the 

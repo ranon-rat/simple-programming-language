@@ -26,6 +26,76 @@ fn parse_argument_functions(program_tokens: &Vec<Tokens>, index: &mut usize) -> 
 
     return arguments;
 }
+fn parse_statement_expr(
+    variable_name: &String,
+    program_tokens: &Vec<Tokens>,
+    index: &mut usize,
+    out: &mut Vec<Expr>,
+) -> bool {
+    match variable_name.as_str() {
+        "read" => {
+            out.push(Expr::Read);
+        }
+        "internal" => {
+            if *index + 1 >= program_tokens.len() {
+                return true;
+            }
+            *index += 1;
+
+            if let Tokens::String(func_name) = &program_tokens[*index] {
+                *index += 1;
+                match &program_tokens[*index] {
+                    Tokens::OpenParenthesis => {
+                        let arguments = parse_argument_functions(program_tokens, index);
+                        out.push(Expr::Internal {
+                            name: func_name.to_string(),
+                            arguments: arguments,
+                        })
+                    }
+                    _ => return true,
+                }
+            }
+        }
+
+        _ => {
+            let initial: char = variable_name.as_bytes()[0] as char;
+            match initial {
+                '0'..'9' => {
+                    let number: f64 = variable_name.parse().unwrap();
+                    out.push(Expr::Number(number));
+                }
+
+                _ => {
+                    if *index + 1 >= program_tokens.len() {
+                        out.push(Expr::VarCall {
+                            name: variable_name.to_string(),
+                        });
+                        return true;
+                    }
+                    let next = &program_tokens[*index + 1];
+                    match next {
+                        Tokens::OpenParenthesis => {
+                            // x(
+                            *index += 2;
+
+                            let arguments = parse_argument_functions(program_tokens, index);
+                            out.push(Expr::FuncCall {
+                                name: variable_name.to_string(),
+                                arguments: arguments,
+                            })
+                        }
+                        _ => {
+                            out.push(Expr::VarCall {
+                                name: variable_name.to_string(),
+                            });
+                        }
+                    }
+                } //   single_statement(cell, program_tokens, out, index);
+            }
+        }
+    }
+    false
+}
 pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec<Expr>, bool) {
     let mut out: Vec<Expr> = Vec::new();
     let mut previous: &Tokens = &Tokens::Unkown;
@@ -194,38 +264,8 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
                 out.push(Expr::String(v.to_string()));
             }
             Tokens::Statement(variable_name) => {
-                let initial: char = variable_name.as_bytes()[0] as char;
-                match initial {
-                    '0'..'9' => {
-                        let number: f64 = variable_name.parse().unwrap();
-                        out.push(Expr::Number(number));
-                    }
-                    _ => {
-                        if *index + 1 >= program_tokens.len() {
-                            out.push(Expr::VarCall {
-                                name: variable_name.to_string(),
-                            });
-                            return (out, is_bool);
-                        }
-                        let next = &program_tokens[*index + 1];
-                        match next {
-                            Tokens::OpenParenthesis => {
-                                // x(
-                                *index += 2;
-
-                                let arguments = parse_argument_functions(program_tokens, index);
-                                out.push(Expr::FuncCall {
-                                    name: variable_name.to_string(),
-                                    arguments: arguments,
-                                })
-                            }
-                            _ => {
-                                out.push(Expr::VarCall {
-                                    name: variable_name.to_string(),
-                                });
-                            }
-                        }
-                    } //   single_statement(cell, program_tokens, out, index);
+                if parse_statement_expr(variable_name, program_tokens, index, &mut out) {
+                    return (out, is_bool);
                 }
             }
             Tokens::CloseParenthesis | Tokens::SemmiColon | Tokens::Comma | _ => {
@@ -246,7 +286,7 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, out: &mut Vec<Stmt>, index: 
 
     *index += 2;
     // if (
-    let (if_expr, if_expr_bool) = &parse_expression(program_tokens, index);
+    let (if_expr, if_expr_bool) = parse_expression(program_tokens, index);
     if *index + 2 >= program_tokens.len() {
         // ends with ){
         return;
@@ -260,8 +300,8 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, out: &mut Vec<Stmt>, index: 
     if *index + 1 >= program_tokens.len() {
         // ends with }
         return out.push(Stmt::If {
-            condition_bool: *if_expr_bool,
-            condition: *if_expr,
+            condition_bool: if_expr_bool,
+            condition: if_expr.to_vec(),
             if_then,
             else_then: Vec::new(),
             elif_then: Vec::new(),
@@ -302,17 +342,50 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, out: &mut Vec<Stmt>, index: 
                 }
                 _ => break,
             },
-            _ => out.push(Stmt::If {
-                condition_bool: *if_expr_bool,
-                condition: *if_expr,
-                if_then,
-                elif_then: Vec::new(),
-                else_then: Vec::new(),
-            }),
+            _ => break,
         }
         *index += 1;
     }
+    out.push(Stmt::If {
+        condition_bool: if_expr_bool,
+        condition: if_expr.to_vec(),
+        if_then: if_then.to_vec(),
+        elif_then: elif_then.to_vec(),
+        else_then: else_then.to_vec(),
+    })
 }
+fn parse_def_args_function(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<String> {
+    let mut arguments: Vec<String> = Vec::new();
+    while *index < program_tokens.len() {
+        match &program_tokens[*index] {
+            Tokens::Statement(v) => {
+                arguments.push(v.to_string());
+            }
+            Tokens::CloseParenthesis => return arguments,
+            _ => {}
+        }
+        *index += 1;
+    }
+    return arguments;
+}
+fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
+    match &program_tokens[*index] {
+        Tokens::Statement(func_name) => {
+            // func (
+            *index += 2;
+            let arguments = parse_def_args_function(program_tokens, index);
+            *index += 1;
+            let body = parse(program_tokens, index);
+            out.push(Stmt::FuncAssign {
+                name: func_name.to_string(),
+                arguments,
+                body,
+            });
+        }
+        _ => {}
+    }
+}
+
 fn handle_statement(
     cell: &Tokens,
     program_tokens: &Vec<Tokens>,
@@ -324,8 +397,14 @@ fn handle_statement(
             "if" => {
                 parse_if_statement(program_tokens, out, index);
             }
-            "while" => {}
             "for" => {}
+            "while" => {}
+            "define" => {
+                *index += 1;
+                parse_def_function(program_tokens, index, out);
+            }
+            "break" => out.push(Stmt::Break),
+            "continue" => out.push(Stmt::Continue),
             "return" => {
                 let has_next = *index + 1 < program_tokens.len();
                 if !has_next {
@@ -341,9 +420,7 @@ fn handle_statement(
                     is_bool: is_bool,
                 }));
             }
-            "define" => todo!("function definitions"),
-            "break" => out.push(Stmt::Break),
-            "continue" => out.push(Stmt::Continue),
+
             "print" => {
                 let has_next = *index + 1 < program_tokens.len();
                 if !has_next {

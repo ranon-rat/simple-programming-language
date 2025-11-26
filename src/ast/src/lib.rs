@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Number(f64),
     String(String),
@@ -48,6 +48,7 @@ pub enum Expr {
     AND, // &&
     NOT, // !
     // Unrelated
+    Read,
     Operations {
         instructions: Vec<Expr>,
         is_bool: bool,
@@ -67,7 +68,7 @@ pub enum Expr {
         arguments: Vec<Expr>,
     },
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     Expression(Expr),
     Print(Expr),  // print "", print x, print func(), print 12+1, print (1+2+3)
@@ -86,7 +87,7 @@ pub enum Stmt {
     FuncAssign {
         // define a (){}
         name: String,
-        arguments: Vec<String>,
+        arguments: Vec<String>,// okay this doesnt seems bad so that is enough
         body: Vec<Stmt>,
     },
     // conditionals

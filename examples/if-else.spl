@@ -1,8 +1,11 @@
 print "what is your name?\n";
 name=read();
-blacklisted="ulises"
+blacklisted="ulises";
 if (name==blacklist){
-    print "fuck you\n"
+    print "not allowed\n";
+}
+elif(name=="tsoding"){
+    print "hey!";
 }else{
    print "hello ";
    print name;

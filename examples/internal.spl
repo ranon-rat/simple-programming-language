@@ -1,0 +1,4 @@
+internal "cos" (12);
+define cos(alpha){
+    return internal "cos" (alpha);
+}

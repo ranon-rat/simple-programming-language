@@ -1,12 +1,7 @@
+use crate::types::Types;
 use ast::{self, Expr, VarCalling};
 use std::collections::HashMap;
-#[derive(Debug, Clone, PartialEq)]
-pub enum Types {
-    Number(f64),
-    String(String),
-    // i should later have something else
-}
-
+mod types;
 pub struct Interpreter {
     pub variables: HashMap<String, Types>,
     pub functions: HashMap<String, ast::FuncAssign>,
@@ -49,40 +44,146 @@ impl Interpreter {
         }
         return None;
     }
+
+    fn eval_individual_comparing_parts(&mut self, current: &Expr) -> Types {
+        match current {
+            Expr::VarCall(var) => {
+                return self
+                    .get_var(&var.name)
+                    .map(|v| v.clone())
+                    .unwrap_or(Types::Number(0.0));
+            }
+            Expr::Operations(operations) => {
+                return self.eval_expression(&operations.instructions, operations.is_bool);
+            }
+            Expr::FuncCall(_) => todo!("later to be implemented"),
+            _ => {
+                return Types::Number(0.0);
+            }
+        }
+    }
+    fn eval_boolean_operation(
+        &mut self,
+        expression: &Vec<Expr>,
+        index: &mut usize,
+    ) -> Option<Types> {
+        // i should check first if i have a next point :)
+        if *index + 2 >= expression.len() {
+            return None;
+        }
+        match expression[*index + 1] {
+            Expr::Equals
+            | Expr::Different
+            | Expr::BiggerThan
+            | Expr::BiggerOrEqual
+            | Expr::SmallerThan
+            | Expr::SmallerOrEqual => {}
+            _ => {
+                return None;
+            }
+        }
+        let comparing_a = &expression[*index];
+        *index += 1;
+        let token = &expression[*index];
+        *index += 1;
+        let comparing_b = &expression[*index];
+        let value_a = self.eval_individual_comparing_parts(comparing_a);
+        let value_b = self.eval_individual_comparing_parts(comparing_b);
+        let result = match token {
+            Expr::Equals => value_a == value_b,
+            Expr::Different => value_a != value_b,
+            Expr::BiggerThan => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => a > b,
+                (Types::String(a), Types::String(b)) => a > b,
+                (Types::String(a), Types::Number(b)) => (a.len() as f64) > b,
+                (Types::Number(a), Types::String(b)) => a > (b.len() as f64),
+            },
+            Expr::BiggerOrEqual => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => a >= b,
+                (Types::String(a), Types::String(b)) => a >= b,
+                (Types::String(a), Types::Number(b)) => (a.len() as f64) >= b,
+                (Types::Number(a), Types::String(b)) => a >= (b.len() as f64),
+            },
+            Expr::SmallerThan => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => a < b,
+                (Types::String(a), Types::String(b)) => a < b,
+                (Types::String(a), Types::Number(b)) => (a.len() as f64) < b,
+                (Types::Number(a), Types::String(b)) => a < (b.len() as f64),
+            },
+            Expr::SmallerOrEqual => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => a <= b,
+                (Types::String(a), Types::String(b)) => a <= b,
+                (Types::String(a), Types::Number(b)) => (a.len() as f64) <= b,
+                (Types::Number(a), Types::String(b)) => a <= (b.len() as f64),
+            },
+            _ => {
+                return None;
+            }
+        };
+        Some(Types::Number(if result { 1.0 } else { 0.0 }))
+    }
     fn eval_previous_expression(
         &mut self,
-        expression: Vec<Expr>,
+        _expression: &Vec<Expr>,
         is_bool: bool,
-        index: &mut usize,
-        prev: &Types,
-        
-    ) ->Types{
+        _index: &mut usize,
+        _out: &mut Types,
+        _previous_op: Expr,
+    ) {
+        if is_bool {}
     }
-    pub fn eval_expression(&mut self, expression: Vec<Expr>, is_bool: bool) -> Types {
-        let mut default_output = Types::Number(0.0);
+
+    pub fn eval_expression(&mut self, expression: &Vec<Expr>, is_bool: bool) -> Types {
+        let mut out = Types::Number(0.0);
         let mut previous_operation: Option<Expr> = None;
-        let mut i: usize = if is_bool { expression.len() } else { 0 };
-        while (i < expression.len() && !is_bool) || (i != 0 && is_bool) {
+        let mut i: usize = 0;
+        while i < expression.len() {
             let current = &expression[i];
             match current {
                 Expr::VarCall(var) => match previous_operation {
                     None => {
                         if let Some(value) = self.get_var(&var.name) {
-                            default_output = value;
+                            out = value.to_owned();
                         }
                     }
-                    _ => {}
+                    Some(previous_op) => {
+                        self.eval_previous_expression(
+                            expression,
+                            is_bool,
+                            &mut i,
+                            &mut out,
+                            previous_op,
+                        );
+                    }
                 },
-                Expr::Number(value) => {}
+                Expr::Number(value) => {
+                    println!("{value}");
+                }
                 _ => {}
             }
-            if is_bool {
-                i -= 1;
-            } else {
-                i += 1;
+            match current {
+                Expr::OR
+                | Expr::AND
+                | Expr::NOT
+                | Expr::Add
+                | Expr::Subtract
+                | Expr::Multiply
+                | Expr::Divide
+                | Expr::Mod => {
+                    previous_operation = Some(current.clone());
+                }
+                _ => {
+                    previous_operation = None;
+                }
+            }
+            i += 1;
+        }
+        if is_bool {
+            match out {
+                Types::String(v) => return Types::Number(if v.len() > 0 { 1.0 } else { 0.0 }),
+                Types::Number(v) => return Types::Number(if v > 0.0 { 1.0 } else { 0.0 }),
             }
         }
-
-        return default_output;
+        return out;
     }
 }

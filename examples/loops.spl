@@ -4,7 +4,7 @@ iterations= read();
 print "for loop\n";
 
 for (i=0; i<iterations; i++) {
-   if (!i % 2) {
+   if (!(i % 2)) {
       print "value is pair\n";
       continue; 
    } 

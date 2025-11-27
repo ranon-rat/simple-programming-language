@@ -1,5 +1,33 @@
 use std::fmt::Debug;
 #[derive(Debug, Clone)]
+pub struct VarCalling {
+    pub name: String,
+}
+#[derive(Debug, Clone)]
+pub struct ModifyinOperation {
+  pub  name: String,
+  pub  value: ExprOperations,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprOperations {
+  pub  instructions: Vec<Expr>,
+  pub  is_bool: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct FuncCall {
+ pub   name: String,
+ pub   arguments: Vec<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VarAssign {
+ pub   name: String,
+ pub   value: ExprOperations,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr {
     Number(f64),
     String(String),
@@ -9,33 +37,13 @@ pub enum Expr {
     Multiply,
     Divide,
     Mod,
-    Increment {
-        // ++
-        name: String,
-    },
-    Decrement {
-        name: String,
-    },
-    AddTo {
-        name: String,
-        value: Box<Expr>,
-    },
-    SubtractTo {
-        name: String,
-        value: Box<Expr>,
-    },
-    MultiplyTo {
-        name: String,
-        value: Box<Expr>,
-    },
-    DivideTo {
-        name: String,
-        value: Box<Expr>,
-    },
-    ModTo {
-        name: String,
-        value: Box<Expr>,
-    },
+    Increment(VarCalling),
+    Decrement(VarCalling),
+    AddTo(ModifyinOperation),
+    SubtractTo(ModifyinOperation),
+    MultiplyTo(ModifyinOperation),
+    DivideTo(ModifyinOperation),
+    ModTo(ModifyinOperation),
     // boolean operators
     Equals,         // ==
     BiggerThan,     // >=
@@ -49,29 +57,50 @@ pub enum Expr {
     NOT, // !
     // Unrelated
     Read,
-    Operations {
-        instructions: Vec<Expr>,
-        is_bool: bool,
-    }, // operations inside of a parenthesis
-    VarCall {
-        // a
-        name: String,
-    },
-    FuncCall {
-        // func(a,b,c)
-        name: String,
-        arguments: Vec<Expr>,
-    },
-    Internal {
-        // internal "cos" ( a,b,c,d)
-        name: String,
-        arguments: Vec<Expr>,
-    },
-    VarAssign {
-        // a=(1+2)
-        name: String,
-        value: Box<Expr>,
-    },
+    Operations(ExprOperations), // operations inside of a parenthesis
+    VarCall(VarCalling),
+    FuncCall(FuncCall),
+    Internal(FuncCall),
+    VarAssign(VarAssign),
+}
+
+#[derive(Debug, Clone)]
+pub struct FuncAssign {
+    // define a (){}
+    pub name: String,
+    pub arguments: Vec<String>, // okay this doesnt seems bad so that is enough
+    pub body: Vec<Stmt>,
+}
+#[derive(Debug, Clone)]
+pub struct Elif {
+    pub condition: Vec<Expr>,
+    pub condition_bool: bool,
+    pub then: Vec<Stmt>,
+}
+#[derive(Debug, Clone)]
+pub struct If {
+   pub condition: Vec<Expr>,
+   pub condition_bool: bool,
+   pub if_then: Vec<Stmt>,
+   pub elif_then: Vec<Elif>, // i will handle various iffs
+   pub else_then: Vec<Stmt>,
+}
+#[derive(Debug, Clone)]
+pub struct ForLoop {
+  pub  init: Vec<Expr>,
+  pub  condition: Vec<Expr>,
+  pub  is_bool: bool,
+  pub  increment: Vec<Expr>,
+  pub  body: Vec<Stmt>,
+}
+#[derive(Debug, Clone)]
+pub struct WhileLoop{
+    
+        // while(x)
+  pub      condition: Vec<Expr>,
+  pub      is_bool: bool,
+  pub      body: Vec<Stmt>,
+    
 }
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -80,44 +109,13 @@ pub enum Stmt {
     Return(Expr), // return, return "all good", return 123, return a==b, etc
     Continue,
     Break,
-    Block {
-        body: Vec<Stmt>,
-    },
+    Block(Vec<Stmt>),
 
-    FuncAssign {
-        // define a (){}
-        name: String,
-        arguments: Vec<String>, // okay this doesnt seems bad so that is enough
-        body: Vec<Stmt>,
-    },
+    FuncAssign(FuncAssign),
     // conditionals
-    Elif {
-        condition: Vec<Expr>,
-        condition_bool: bool,
-        then: Vec<Stmt>,
-    },
-    If {
-        // if (a){}
-        condition: Vec<Expr>,
-        condition_bool: bool,
-        if_then: Vec<Stmt>,
-        elif_then: Vec<Stmt>, // i will handle various iffs
-        else_then: Vec<Stmt>,
-    },
+    If(If),
     // loops
-    ForLoop {
-        // for(x=1;x<10;x++)
-        init: Vec<Expr>,
-        condition: Vec<Expr>,
-        is_bool: bool, 
-        increment: Vec<Expr>,
-        body: Vec<Stmt>,
-    },
-    WhileLoop {
-        // while(x)
-        condition: Vec<Expr>,
-        is_bool:bool,
-        body: Vec<Stmt>,
-    },
+    ForLoop (ForLoop),
+    WhileLoop (WhileLoop),
     // okay now i will make something simple
 }

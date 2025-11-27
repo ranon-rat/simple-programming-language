@@ -13,3 +13,6 @@ This is based [bc](https://www.gnu.org/software/bc/manual/html_mono/bc.html), ob
 
 One of the things that I may add later on, will be some simple support for modules and other stuff.
 FFI its definitely something that I would like to try but in that case it would be much better to just use c++ to write this interpreter.
+
+
+![alt text](imgs/image.png)

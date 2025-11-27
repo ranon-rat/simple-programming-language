@@ -1,18 +1,26 @@
-# SPL(simple programming language)
+# SPL (Simple Programming Language)
 
-This is a simple programming language made in rust.
-The only objective that I have with this project 
-is to learn more about rust and improve my understanding 
-on how interpreters work under the hood.
+A minimal programming language interpreter written in Rust.
 
-This is a simple prototype, its not something that I plan to mantain. 
-Once the examples are runnable, and there is no findable bug
-I will move to a next project.
+## About
 
-This is based [bc](https://www.gnu.org/software/bc/manual/html_mono/bc.html), obviously without things like command execution.
+This project is a learning exercise designed to deepen my understanding of Rust and the inner workings of interpreters. SPL is inspired by [bc](https://www.gnu.org/software/bc/manual/html_mono/bc.html), though it omits features like command execution for simplicity and security.
 
-One of the things that I may add later on, will be some simple support for modules and other stuff.
-FFI its definitely something that I would like to try but in that case it would be much better to just use c++ to write this interpreter.
+## Project Status
+
+This is a prototype and not intended for long-term maintenance. Once the example programs run correctly and no obvious bugs remain, I'll consider the project complete and move on to new challenges.
+
+## Future Considerations
+
+While the current scope is intentionally limited, potential additions include:
+
+- **Module system**: Basic support for code organization across files
+- **Arrays**.
+- **FFI (Foreign Function Interface)**: While interesting, this would likely be better implemented in a C++ version of the interpreter
 
 
-![alt text](imgs/image.png)
+![SPL Logo](imgs/image.png)
+
+---
+
+**Note**: This is an educational project focused on learning rather than production use.

@@ -92,30 +92,10 @@ impl Interpreter {
         let result = match token {
             Expr::Equals => value_a == value_b,
             Expr::Different => value_a != value_b,
-            Expr::BiggerThan => match (value_a, value_b) {
-                (Types::Number(a), Types::Number(b)) => a > b,
-                (Types::String(a), Types::String(b)) => a > b,
-                (Types::String(a), Types::Number(b)) => (a.len() as f64) > b,
-                (Types::Number(a), Types::String(b)) => a > (b.len() as f64),
-            },
-            Expr::BiggerOrEqual => match (value_a, value_b) {
-                (Types::Number(a), Types::Number(b)) => a >= b,
-                (Types::String(a), Types::String(b)) => a >= b,
-                (Types::String(a), Types::Number(b)) => (a.len() as f64) >= b,
-                (Types::Number(a), Types::String(b)) => a >= (b.len() as f64),
-            },
-            Expr::SmallerThan => match (value_a, value_b) {
-                (Types::Number(a), Types::Number(b)) => a < b,
-                (Types::String(a), Types::String(b)) => a < b,
-                (Types::String(a), Types::Number(b)) => (a.len() as f64) < b,
-                (Types::Number(a), Types::String(b)) => a < (b.len() as f64),
-            },
-            Expr::SmallerOrEqual => match (value_a, value_b) {
-                (Types::Number(a), Types::Number(b)) => a <= b,
-                (Types::String(a), Types::String(b)) => a <= b,
-                (Types::String(a), Types::Number(b)) => (a.len() as f64) <= b,
-                (Types::Number(a), Types::String(b)) => a <= (b.len() as f64),
-            },
+            Expr::BiggerThan => value_a.to_number() > value_b.to_number(),
+            Expr::BiggerOrEqual => value_a.to_number() >= value_b.to_number(),
+            Expr::SmallerThan => value_a.to_number() < value_b.to_number(),
+            Expr::SmallerOrEqual => value_a.to_number() <= value_b.to_number(),
             _ => {
                 return None;
             }

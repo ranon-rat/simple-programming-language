@@ -1,9 +1,26 @@
 use lexer::{tokenize, tokens::LexerError};
 
-use parser::parse_expression;
+use parser::{self, parse};
 fn main() {
     let program = r#"
-1+2+3+parse(1,2,func());
+define a(a,b,c){
+    print a+b+c;
+    return a+b+c;
+}
+define a(a){
+    internal "cos" (a,b,c);
+}
+
+for (i=0; i<iterations; i++) {
+   if (!i % 2) {
+      print "value is pair\n";
+      continue; 
+   } 
+   print "value is not pair\n";
+    break;
+   // break continue, halt are avaible here
+}
+    
     "#
     .to_string();
     match tokenize(&program) {
@@ -13,9 +30,12 @@ fn main() {
             LexerError::Unreachable => println!("what!?"),
         },
         Ok(v) => {
-            dbg!(&v);
+            for i in 0..v.len() {
+                println!("{i} {:?}", v[i]);
+            }
+
             let mut index = 0;
-            dbg!(parse_expression(&v, &mut index));
+            dbg!(parse(&v, &mut index));
         }
     }
     println!("Hello, world!");

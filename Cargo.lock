@@ -17,6 +17,9 @@ dependencies = [
 [[package]]
 name = "interpreter"
 version = "0.1.0"
+dependencies = [
+ "ast",
+]
 
 [[package]]
 name = "lexer"

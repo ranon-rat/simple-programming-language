@@ -18,9 +18,8 @@ While the current scope is intentionally limited, potential additions include:
 - **Arrays**.
 - **FFI (Foreign Function Interface)**: While interesting, this would likely be better implemented in a C++ version of the interpreter
 
-## Screenshot
 
-![SPL in action](imgs/image.png)
+![SPL Logo](imgs/image.png)
 
 ---
 

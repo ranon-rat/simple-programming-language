@@ -1,10 +1,10 @@
 use crate::types::Types;
 use ast::{self, Expr};
-use std::cell::RefCell;
+use std::cell::Cell;
 use std::collections::HashMap;
 mod types;
 pub struct Interpreter {
-    pub variables: HashMap<String, RefCell<Types>>,
+    pub variables: HashMap<String, Cell<Types>>,
     pub functions: HashMap<String, ast::FuncAssign>,
     pub internal_functions: HashMap<String, fn(Vec<Types>) -> Types>,
     pub previous_context: Option<Box<Interpreter>>,
@@ -12,8 +12,8 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn get_var(&mut self, var_name: &str) -> Option<&RefCell<Types>> {
-        if let Some(v) = self.variables.get(var_name) {
+    pub fn get_var(&mut self, var_name: &str) -> Option<&mut Cell<Types>> {
+        if let Some(v) = self.variables.get_mut(var_name) {
             return Some(v);
         }
         if let Some(prev) = self.previous_context.as_mut() {
@@ -50,7 +50,7 @@ impl Interpreter {
         match current {
             Expr::VarCall(var) => self
                 .get_var(&var.name)
-                .map(|cell| cell.borrow().clone())
+                .map(|cell| cell.get_mut().clone())
                 .unwrap_or(Types::Number(0.0)),
 
             Expr::Operations(operations) => {
@@ -222,7 +222,7 @@ impl Interpreter {
         match current {
             Expr::Increment(v) => {
                 if let Some(cell) = self.get_var(&v.name) {
-                    let mut var = cell.borrow_mut();
+                    let mut var = cell.get_mut();
 
                     if let Types::Number(n) = &mut *var {
                         *n += 1.0;
@@ -233,7 +233,7 @@ impl Interpreter {
 
             Expr::Decrement(v) => {
                 if let Some(cell) = self.get_var(&v.name) {
-                    let mut var = cell.borrow_mut();
+                    let mut var = cell.get_mut();
                     if let Types::Number(n) = &mut *var {
                         *n -= 1.0; // ← FIX: ahora sí decrementa
                         *out = var.clone();
@@ -242,19 +242,25 @@ impl Interpreter {
             }
 
             Expr::AddTo(modifying) => {
+                let eval =
+                    self.eval_expression(&modifying.value.instructions, modifying.value.is_bool);
+                let current_val = match self.get_var(&modifying.name) {
+                    Some(cell) => {
+                        let borrowed = cell.get_mut();
+                        borrowed.clone()
+                    }
+                    None => {
+                        return;
+                    }
+                };
+                let new_value = self.eval_arithmetic_expression(&current_val, &eval, &Expr::Add);
+
                 if let Some(cell) = self.get_var(&modifying.name) {
-                    let mut var = cell.borrow_mut();
-                    // Evalúa la expresión del "valor a sumar"
-                    let eval = self.eval_expression(&modifying.value.instructions, modifying.value.is_bool);
-
-                    // new_value es un Types
-                    let new_value = self.eval_arithmetic_expression(&var, &eval, &Expr::Add);
-
+                    let var = cell.get_mut();
                     *var = new_value;
                     *out = var.clone();
                 }
             }
-
             _ => {}
         }
     }

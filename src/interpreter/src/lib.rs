@@ -1,9 +1,10 @@
 use crate::types::Types;
-use ast::{self, Expr, VarCalling};
+use ast::{self, Expr};
+use std::cell::RefCell;
 use std::collections::HashMap;
 mod types;
 pub struct Interpreter {
-    pub variables: HashMap<String, Types>,
+    pub variables: HashMap<String, RefCell<Types>>,
     pub functions: HashMap<String, ast::FuncAssign>,
     pub internal_functions: HashMap<String, fn(Vec<Types>) -> Types>,
     pub previous_context: Option<Box<Interpreter>>,
@@ -11,21 +12,21 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn get_var(&mut self, var_name: &String) -> Option<&mut Types> {
-        if let Some(v) = self.variables.get_mut(var_name) {
+    pub fn get_var(&mut self, var_name: &str) -> Option<&RefCell<Types>> {
+        if let Some(v) = self.variables.get(var_name) {
             return Some(v);
         }
-        // No mover previous_context → usar as_mut()
         if let Some(prev) = self.previous_context.as_mut() {
             return prev.get_var(var_name);
         }
-        return None;
+        None
     }
-    pub fn get_func(&mut self, function: &String) -> Option<&ast::FuncAssign> {
+
+    pub fn get_func(&self, function: &String) -> Option<&ast::FuncAssign> {
         if let Some(f) = self.functions.get(function) {
             return Some(f);
         }
-        if let Some(v) = self.previous_context.as_mut() {
+        if let Some(v) = self.previous_context.as_ref() {
             match v.get_func(function) {
                 Some(f) => return Some(f),
                 None => {}
@@ -34,8 +35,8 @@ impl Interpreter {
 
         return None;
     }
-    pub fn get_internal(&mut self, internal_function: &String) -> Option<fn(Vec<Types>) -> Types> {
-        if let Some(v) = self.global_context.as_mut() {
+    pub fn get_internal(&self, internal_function: &String) -> Option<fn(Vec<Types>) -> Types> {
+        if let Some(v) = self.global_context.as_ref() {
             return v.get_internal(internal_function);
         }
         // Primero busca en el scope actual
@@ -45,18 +46,45 @@ impl Interpreter {
         return None;
     }
 
-    fn eval_individual_comparing_parts(&mut self, current: &Expr) -> Types {
+    fn eval_value_parts(&mut self, current: &Expr) -> Types {
         match current {
-            Expr::VarCall(var) => {
-                return self
-                    .get_var(&var.name)
-                    .map(|v| v.clone())
-                    .unwrap_or(Types::Number(0.0));
-            }
+            Expr::VarCall(var) => self
+                .get_var(&var.name)
+                .map(|cell| cell.borrow().clone())
+                .unwrap_or(Types::Number(0.0)),
+
             Expr::Operations(operations) => {
-                return self.eval_expression(&operations.instructions, operations.is_bool);
+                self.eval_expression(&operations.instructions, operations.is_bool)
             }
+
             Expr::FuncCall(_) => todo!("later to be implemented"),
+            Expr::String(v) => Types::String(v.to_string()),
+            Expr::Number(v) => Types::Number(*v),
+            _ => {
+                return Types::Number(0.0);
+            }
+        }
+    }
+
+    fn next_if_not(&mut self, expression: &Vec<Expr>, index: &mut usize, not: bool) -> Types {
+        let current = &expression[*index];
+        match current {
+            Expr::NOT => {
+                if *index + 1 >= expression.len() {
+                    return Types::Number(0.0);
+                }
+                *index += 1;
+                return self.next_if_not(expression, index, not);
+            }
+
+            Expr::VarCall(_)
+            | Expr::FuncCall(_)
+            | Expr::Number(_)
+            | Expr::Operations(_)
+            | Expr::String(_) => {
+                let value = self.eval_value_parts(current);
+                return self.eval_not(&value, not);
+            }
             _ => {
                 return Types::Number(0.0);
             }
@@ -66,6 +94,7 @@ impl Interpreter {
         &mut self,
         expression: &Vec<Expr>,
         index: &mut usize,
+        not: bool,
     ) -> Option<Types> {
         // i should check first if i have a next point :)
         if *index + 2 >= expression.len() {
@@ -82,13 +111,13 @@ impl Interpreter {
                 return None;
             }
         }
-        let comparing_a = &expression[*index];
+        //
+        let value_a = self.next_if_not(expression, index, not);
+
         *index += 1;
         let token = &expression[*index];
         *index += 1;
-        let comparing_b = &expression[*index];
-        let value_a = self.eval_individual_comparing_parts(comparing_a);
-        let value_b = self.eval_individual_comparing_parts(comparing_b);
+        let value_b = self.next_if_not(expression, index, false);
         let result = match token {
             Expr::Equals => value_a == value_b,
             Expr::Different => value_a != value_b,
@@ -102,67 +131,193 @@ impl Interpreter {
         };
         Some(Types::Number(if result { 1.0 } else { 0.0 }))
     }
+    fn eval_boolean_expression(&self, value_a: &Types, value_b: &Types, operation: &Expr) -> Types {
+        let bool_a = value_a.to_number() > 0.0;
+        let bool_b = value_b.to_number() > 0.0;
+        let result = match &operation {
+            Expr::OR => bool_a || bool_b,
+            Expr::AND => bool_a && bool_b,
+            _ => false,
+        };
+        return Types::Number(if result { 1.0 } else { 0.0 });
+    }
+    fn eval_not(&self, value: &Types, not: bool) -> Types {
+        if not {
+            return Types::Number(if value.to_number() > 0.0 { 0.0 } else { 1.1 });
+        }
+        return value.clone();
+    }
+    fn eval_arithmetic_expression(
+        &self,
+        value_a: &Types,
+        value_b: &Types,
+        operation: &Expr,
+    ) -> Types {
+        match operation {
+            Expr::Add => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => return Types::Number(a + b),
+                (Types::Number(a), Types::String(b)) => return Types::String(a.to_string() + b),
+                (Types::String(a), Types::Number(b)) => {
+                    return Types::String(a.to_owned() + &b.to_string());
+                }
+                (Types::String(a), Types::String(b)) => {
+                    return Types::String(a.to_owned() + &b.to_owned());
+                }
+            },
+            Expr::Subtract => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => return Types::Number(a - b),
+                _ => {}
+            },
+            Expr::Multiply => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => return Types::Number(a * b),
+                (Types::Number(a), Types::String(b)) => {
+                    return Types::String(b.as_str().repeat(*a as usize));
+                }
+                (Types::String(a), Types::Number(b)) => {
+                    return Types::String(a.as_str().repeat(*b as usize));
+                }
+                _ => {}
+            },
+            Expr::Divide => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => return Types::Number(a / b),
+                _ => {}
+            },
+            Expr::Mod => match (value_a, value_b) {
+                (Types::Number(a), Types::Number(b)) => return Types::Number(a % b),
+                _ => {}
+            },
+
+            _ => {}
+        }
+        return Types::Number(0.0);
+    }
     fn eval_previous_expression(
         &mut self,
-        _expression: &Vec<Expr>,
+        expression: &Vec<Expr>,
         is_bool: bool,
-        _index: &mut usize,
-        _out: &mut Types,
-        _previous_op: Expr,
+        index: &mut usize,
+        out: &mut Types,
+        operation: &Expr,
+        not: bool,
     ) {
-        if is_bool {}
+        if is_bool {
+            // if is bool i should only handle some of the basic operations here
+            if let Some(value_b) = self.eval_boolean_operation(expression, index, not) {
+                match operation {
+                    Expr::OR | Expr::AND => {
+                        *out = self.eval_boolean_expression(&out, &value_b, operation);
+                        return;
+                    }
+                    _ => {
+                        *out = self.eval_arithmetic_expression(&out, &value_b, operation);
+                        return;
+                    }
+                }
+            }
+        }
+        let value_b = self.eval_value_parts(&expression[*index]);
+        *out = self.eval_arithmetic_expression(&out, &value_b, operation);
     }
+    pub fn modifying_expression(&mut self, current: &Expr, out: &mut Types) {
+        match current {
+            Expr::Increment(v) => {
+                if let Some(cell) = self.get_var(&v.name) {
+                    let mut var = cell.borrow_mut();
 
+                    if let Types::Number(n) = &mut *var {
+                        *n += 1.0;
+                        *out = var.clone(); // var es un RefMut<Types>, clonamos el Types interno
+                    }
+                }
+            }
+
+            Expr::Decrement(v) => {
+                if let Some(cell) = self.get_var(&v.name) {
+                    let mut var = cell.borrow_mut();
+                    if let Types::Number(n) = &mut *var {
+                        *n -= 1.0; // ← FIX: ahora sí decrementa
+                        *out = var.clone();
+                    }
+                }
+            }
+
+            Expr::AddTo(modifying) => {
+                if let Some(cell) = self.get_var(&modifying.name) {
+                    let mut var = cell.borrow_mut();
+                    // Evalúa la expresión del "valor a sumar"
+                    let eval = self.eval_expression(&modifying.value.instructions, modifying.value.is_bool);
+
+                    // new_value es un Types
+                    let new_value = self.eval_arithmetic_expression(&var, &eval, &Expr::Add);
+
+                    *var = new_value;
+                    *out = var.clone();
+                }
+            }
+
+            _ => {}
+        }
+    }
     pub fn eval_expression(&mut self, expression: &Vec<Expr>, is_bool: bool) -> Types {
         let mut out = Types::Number(0.0);
-        let mut previous_operation: Option<Expr> = None;
+        let mut previous_operation: Option<&Expr> = None;
         let mut i: usize = 0;
+        let mut is_not = false;
         while i < expression.len() {
             let current = &expression[i];
             match current {
-                Expr::VarCall(var) => match previous_operation {
-                    None => {
-                        if let Some(value) = self.get_var(&var.name) {
-                            out = value.to_owned();
+                Expr::VarCall(_)
+                | Expr::FuncCall(_)
+                | Expr::Number(_)
+                | Expr::Operations(_)
+                | Expr::String(_) => {
+                    match previous_operation {
+                        None => {
+                            let value = self.eval_value_parts(current);
+                            out = self.eval_not(&value, is_not);
+                        }
+                        Some(previous_op) => {
+                            self.eval_previous_expression(
+                                expression,
+                                is_bool,
+                                &mut i,
+                                &mut out,
+                                previous_op,
+                                is_not,
+                            );
                         }
                     }
-                    Some(previous_op) => {
-                        self.eval_previous_expression(
-                            expression,
-                            is_bool,
-                            &mut i,
-                            &mut out,
-                            previous_op,
-                        );
-                    }
-                },
-                Expr::Number(value) => {
-                    println!("{value}");
+                    is_not = false;
                 }
-                _ => {}
+
+                Expr::NOT => {
+                    is_not = true;
+                }
+
+                _ => {
+                    is_not = false;
+                }
             }
             match current {
                 Expr::OR
                 | Expr::AND
-                | Expr::NOT
                 | Expr::Add
                 | Expr::Subtract
                 | Expr::Multiply
                 | Expr::Divide
                 | Expr::Mod => {
-                    previous_operation = Some(current.clone());
+                    previous_operation = Some(current);
                 }
                 _ => {
-                    previous_operation = None;
+                    if !is_not {
+                        previous_operation = None;
+                    }
                 }
             }
             i += 1;
         }
         if is_bool {
-            match out {
-                Types::String(v) => return Types::Number(if v.len() > 0 { 1.0 } else { 0.0 }),
-                Types::Number(v) => return Types::Number(if v > 0.0 { 1.0 } else { 0.0 }),
-            }
+            return Types::Number(out.to_number());
         }
         return out;
     }

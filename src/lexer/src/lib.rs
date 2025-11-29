@@ -179,7 +179,17 @@ fn arithmetic_match(
             }
         }
         '*' => {
-            two_cases_arithmetic(Tokens::Mod, Tokens::ModTo, out, input, index, limit);
+            two_cases_arithmetic(
+                Tokens::Multiply,
+                Tokens::MultiplyTo,
+                out,
+                input,
+                index,
+                limit,
+            );
+        }
+        '/' => {
+            two_cases_arithmetic(Tokens::Divide, Tokens::Divide, out, input, index, limit);
         }
         '%' => {
             two_cases_arithmetic(Tokens::Mod, Tokens::ModTo, out, input, index, limit);

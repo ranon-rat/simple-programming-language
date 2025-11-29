@@ -1,6 +1,6 @@
 use crate::ast::Stmt;
 use ast::{
-    self, Elif, Expr, ExprOperations, ForLoop, FuncAssign, FuncCall, If, ModifyinOperation,
+    self, Elif, Expr, ExprOperations, ForLoop, FuncAssign, FuncCall, If, ModifyingOperation,
     VarAssign, VarCalling, WhileLoop,
 };
 use lexer::{self, tokens::Tokens};
@@ -93,7 +93,7 @@ fn parse_statement_expr(
                             *index += 2;
                             let (operations, operation_bool) =
                                 parse_expression(program_tokens, index);
-                            out.push(Expr::AddTo(ModifyinOperation {
+                            out.push(Expr::AddTo(ModifyingOperation {
                                 name: variable_name.to_string(),
                                 value: ExprOperations {
                                     instructions: operations,
@@ -106,7 +106,7 @@ fn parse_statement_expr(
                             *index += 2;
                             let (operations, operation_bool) =
                                 parse_expression(program_tokens, index);
-                            out.push(Expr::SubtractTo(ModifyinOperation {
+                            out.push(Expr::SubtractTo(ModifyingOperation {
                                 name: variable_name.to_string(),
                                 value: ExprOperations {
                                     instructions: operations,
@@ -119,7 +119,7 @@ fn parse_statement_expr(
                             *index += 2;
                             let (operations, operation_bool) =
                                 parse_expression(program_tokens, index);
-                            out.push(Expr::MultiplyTo(ModifyinOperation {
+                            out.push(Expr::MultiplyTo(ModifyingOperation {
                                 name: variable_name.to_string(),
                                 value: ExprOperations {
                                     instructions: operations,
@@ -132,7 +132,7 @@ fn parse_statement_expr(
                             *index += 2;
                             let (operations, operation_bool) =
                                 parse_expression(program_tokens, index);
-                            out.push(Expr::DivideTo(ModifyinOperation {
+                            out.push(Expr::DivideTo(ModifyingOperation {
                                 name: variable_name.to_string(),
                                 value: ExprOperations {
                                     instructions: operations,
@@ -145,7 +145,7 @@ fn parse_statement_expr(
                             *index += 2;
                             let (operations, operation_bool) =
                                 parse_expression(program_tokens, index);
-                            out.push(Expr::ModTo(ModifyinOperation {
+                            out.push(Expr::ModTo(ModifyingOperation {
                                 name: variable_name.to_string(),
                                 value: ExprOperations {
                                     instructions: operations,
@@ -203,6 +203,78 @@ fn parse_statement_expr(
         }
     }
     false
+}
+// a*b +c= (a*b)a+c
+fn continue_until_another_op(input: &Vec<Expr>, index: &mut usize) -> (Vec<Expr>, bool) {
+    let mut out = Vec::new();
+    let mut is_bool = false;
+    while *index < input.len() {
+        let current = &input[*index];
+
+        match current {
+            Expr::Add | Expr::Subtract => {
+                break;
+            }
+            _ => {
+                out.push(current.clone());
+                match current {
+                    Expr::Equals
+                    | Expr::Different
+                    | Expr::BiggerThan
+                    | Expr::BiggerOrEqual
+                    | Expr::SmallerThan
+                    | Expr::SmallerOrEqual
+                    | Expr::OR
+                    | Expr::AND
+                    | Expr::NOT => {
+                        is_bool = true;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        *index += 1;
+    }
+    return (out, is_bool);
+}
+fn normalize_parse_expression(input: &Vec<Expr>) -> Vec<Expr> {
+    let mut out = Vec::new();
+    let mut i: usize = 0;
+
+    while i < input.len() {
+        let mut we_coming_operation = false;
+        let current = &input[i];
+        match current {
+            Expr::String(_) | Expr::VarCall(_) | Expr::Number(_) | Expr::FuncCall(_) => {
+                if i + 1 >= input.len() {
+                    out.push(current.clone());
+                    break;
+                }
+                let next = &input[i + 1];
+                match next {
+                    Expr::Divide | Expr::Multiply | Expr::Mod => {
+                        let (op, is_bool) = continue_until_another_op(input, &mut i);
+                        out.push(Expr::Operations(ExprOperations {
+                            instructions: op,
+                            is_bool: is_bool,
+                        }));
+                        we_coming_operation = true;
+                    }
+                    _ => {}
+                }
+            }
+
+            _ => {
+                out.push(current.clone());
+            }
+        }
+        if we_coming_operation && i < input.len() {
+            out.push(input[i].clone());
+        }
+
+        i += 1;
+    }
+    return out;
 }
 pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec<Expr>, bool) {
     let mut out: Vec<Expr> = Vec::new();
@@ -292,25 +364,25 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
             }
             Tokens::Statement(variable_name) => {
                 if parse_statement_expr(variable_name, program_tokens, index, &mut out) {
-                    return (out, is_bool);
+                    return (normalize_parse_expression(&out), is_bool);
                 }
             }
             Tokens::CloseParenthesis | Tokens::SemmiColon | Tokens::Comma | _ => {
                 // },{}
-                return (out, is_bool);
+                return (normalize_parse_expression(&out), is_bool);
             }
         }
         match &program_tokens[*index] {
             Tokens::CloseParenthesis | Tokens::SemmiColon | Tokens::Comma => {
                 // },{}
-                return (out, is_bool);
+                break;
             }
             _ => {}
         }
         *index += 1;
     }
 
-    return (out, is_bool);
+    return (normalize_parse_expression(&out), is_bool);
 }
 fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
     if *index + 2 >= program_tokens.len() {
@@ -395,7 +467,6 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
 fn parse_def_args_function(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<String> {
     let mut arguments: Vec<String> = Vec::new();
     while *index < program_tokens.len() {
-        println!("{:?} {:?}", index, program_tokens[*index]);
         match &program_tokens[*index] {
             Tokens::Statement(v) => {
                 arguments.push(v.to_string());
@@ -530,7 +601,7 @@ fn handle_statement(
                 }
                 *index += 1;
                 let (returning, is_bool) = parse_expression(program_tokens, index);
-                return out.push(Stmt::Return(Expr::Operations (ExprOperations{
+                return out.push(Stmt::Return(Expr::Operations(ExprOperations {
                     instructions: returning,
                     is_bool: is_bool,
                 })));
@@ -546,13 +617,13 @@ fn handle_statement(
                 }
                 *index += 1;
                 let (returning, is_bool) = parse_expression(program_tokens, index);
-                return out.push(Stmt::Print(Expr::Operations (ExprOperations{
+                return out.push(Stmt::Print(Expr::Operations(ExprOperations {
                     instructions: returning,
                     is_bool: is_bool,
                 })));
             }
             "" => panic!("empty statement this shouldnt happen"),
-            v => {
+            _ => {
                 let has_next = *index + 1 < program_tokens.len();
                 if !has_next {
                     return out.push(Stmt::Expression(Expr::Operations(ExprOperations {
@@ -560,7 +631,6 @@ fn handle_statement(
                         is_bool: false,
                     })));
                 }
-                println!("{v}");
 
                 let (expr_out, is_bool) = parse_expression(program_tokens, index);
                 out.push(Stmt::Expression(Expr::Operations(ExprOperations {
@@ -576,12 +646,11 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
 
     while *index < tokens.len() {
         let cell = &tokens[*index];
-        println!("{:?} {:?} {}", cell, out, *index);
         match cell {
             Tokens::OpenCurlyBrackets => {
                 *index += 1;
                 let body = parse(tokens, index);
-                out.push(Stmt::Block ( body ))
+                out.push(Stmt::Block(body))
             }
             Tokens::CloseCurlyBrackets => {
                 return out;
@@ -606,6 +675,7 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
 
             _ => {}
         }
+
         *index += 1;
     }
     return out;

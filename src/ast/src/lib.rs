@@ -4,7 +4,7 @@ pub struct VarCalling {
     pub name: String,
 }
 #[derive(Debug, Clone)]
-pub struct ModifyinOperation {
+pub struct ModifyingOperation {
   pub  name: String,
   pub  value: ExprOperations,
 }
@@ -39,11 +39,11 @@ pub enum Expr {
     Mod,
     Increment(VarCalling),
     Decrement(VarCalling),
-    AddTo(ModifyinOperation),
-    SubtractTo(ModifyinOperation),
-    MultiplyTo(ModifyinOperation),
-    DivideTo(ModifyinOperation),
-    ModTo(ModifyinOperation),
+    AddTo(ModifyingOperation),
+    SubtractTo(ModifyingOperation),
+    MultiplyTo(ModifyingOperation),
+    DivideTo(ModifyingOperation),
+    ModTo(ModifyingOperation),
     // boolean operators
     Equals,         // ==
     BiggerThan,     // >=

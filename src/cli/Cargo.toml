@@ -7,4 +7,4 @@ edition = "2024"
 
 lexer = { path = "../lexer" }
 parser = {path="../parser"}
-
+interpreter = {path="../interpreter"}

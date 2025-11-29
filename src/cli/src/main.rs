@@ -1,26 +1,9 @@
+use interpreter::Interpreter;
 use lexer::{tokenize, tokens::LexerError};
-
-use parser::{self, parse};
+use parser::{self, parse_expression};
 fn main() {
     let program = r#"
-define a(a,b,c){
-    print a+b+c;
-    return a+b+c;
-}
-define a(a){
-    internal "cos" (a,b,c);
-}
-
-for (i=0; i<iterations; i++) {
-   if (!i % 2) {
-      print "value is pair\n";
-      continue; 
-   } 
-   print "value is not pair\n";
-    break;
-   // break continue, halt are avaible here
-}
-    
+(2*3+1)==1
     "#
     .to_string();
     match tokenize(&program) {
@@ -35,7 +18,11 @@ for (i=0; i<iterations; i++) {
             }
 
             let mut index = 0;
-            dbg!(parse(&v, &mut index));
+            let (expression, is_bool) = parse_expression(&v, &mut index);
+            dbg!(&expression);
+            let mut interpreter = Interpreter::new();
+            
+            println!("{:?}", interpreter.eval_expression(&expression, is_bool));
         }
     }
     println!("Hello, world!");

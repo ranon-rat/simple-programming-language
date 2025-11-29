@@ -1,5 +1,5 @@
 use crate::types::Types;
-use ast::{self, Expr};
+use ast::{self, Expr, ModifyingOperation};
 use std::cell::Cell;
 use std::collections::HashMap;
 mod types;
@@ -12,6 +12,15 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    pub fn new() -> Interpreter {
+        Interpreter {
+            variables: HashMap::new(),
+            functions: HashMap::new(),
+            internal_functions: HashMap::new(),
+            previous_context: None,
+            global_context: None,
+        }
+    }
     pub fn get_var(&mut self, var_name: &str) -> Option<&mut Cell<Types>> {
         if let Some(v) = self.variables.get_mut(var_name) {
             return Some(v);
@@ -218,11 +227,37 @@ impl Interpreter {
         let value_b = self.eval_value_parts(&expression[*index]);
         *out = self.eval_arithmetic_expression(&out, &value_b, operation);
     }
-    pub fn modifying_expression(&mut self, current: &Expr, out: &mut Types) {
+
+    pub fn eval_self_modifying_operation(
+        &mut self,
+        modifying: &ModifyingOperation,
+        operation: &Expr,
+        out: &mut Types,
+    ) {
+        let eval = self.eval_expression(&modifying.value.instructions, modifying.value.is_bool);
+        let current_val = match self.get_var(&modifying.name) {
+            Some(cell) => {
+                let borrowed = cell.get_mut();
+                borrowed.clone()
+            }
+            None => {
+                return;
+            }
+        };
+
+        let new_value = self.eval_arithmetic_expression(&current_val, &eval, operation);
+
+        if let Some(cell) = self.get_var(&modifying.name) {
+            let var = cell.get_mut();
+            *var = new_value;
+            *out = var.clone();
+        }
+    }
+    pub fn eval_modifying_expression(&mut self, current: &Expr, out: &mut Types) {
         match current {
             Expr::Increment(v) => {
                 if let Some(cell) = self.get_var(&v.name) {
-                    let mut var = cell.get_mut();
+                    let var = cell.get_mut();
 
                     if let Types::Number(n) = &mut *var {
                         *n += 1.0;
@@ -233,7 +268,7 @@ impl Interpreter {
 
             Expr::Decrement(v) => {
                 if let Some(cell) = self.get_var(&v.name) {
-                    let mut var = cell.get_mut();
+                    let var = cell.get_mut();
                     if let Types::Number(n) = &mut *var {
                         *n -= 1.0; // ← FIX: ahora sí decrementa
                         *out = var.clone();
@@ -242,24 +277,36 @@ impl Interpreter {
             }
 
             Expr::AddTo(modifying) => {
+                self.eval_self_modifying_operation(modifying, &Expr::Add, out);
+            }
+            Expr::SubtractTo(modifying) => {
+                self.eval_self_modifying_operation(modifying, &Expr::Subtract, out);
+            }
+            Expr::MultiplyTo(modifying) => {
+                self.eval_self_modifying_operation(modifying, &Expr::Multiply, out);
+            }
+            Expr::DivideTo(modifying) => {
+                self.eval_self_modifying_operation(modifying, &Expr::Multiply, out);
+            }
+            Expr::ModTo(modifying) => {
+                self.eval_self_modifying_operation(modifying, &Expr::Mod, out);
+            }
+            Expr::VarAssign(var_assign) => {
                 let eval =
-                    self.eval_expression(&modifying.value.instructions, modifying.value.is_bool);
-                let current_val = match self.get_var(&modifying.name) {
+                    self.eval_expression(&var_assign.value.instructions, var_assign.value.is_bool);
+                match self.get_var(&var_assign.name) {
                     Some(cell) => {
-                        let borrowed = cell.get_mut();
-                        borrowed.clone()
+                        let var = cell.get_mut();
+                        *var = eval.clone();
+                        *out = eval.clone();
                     }
                     None => {
+                        self.variables
+                            .insert(var_assign.name.to_string(), Cell::from(eval.clone()));
+                        *out = eval.clone();
                         return;
                     }
                 };
-                let new_value = self.eval_arithmetic_expression(&current_val, &eval, &Expr::Add);
-
-                if let Some(cell) = self.get_var(&modifying.name) {
-                    let var = cell.get_mut();
-                    *var = new_value;
-                    *out = var.clone();
-                }
             }
             _ => {}
         }
@@ -295,7 +342,16 @@ impl Interpreter {
                     }
                     is_not = false;
                 }
-
+                Expr::Increment(_)
+                | Expr::Decrement(_)
+                | Expr::AddTo(_)
+                | Expr::SubtractTo(_)
+                | Expr::MultiplyTo(_)
+                | Expr::DivideTo(_)
+                | Expr::ModTo(_)
+                | Expr::VarAssign(_) => {
+                    self.eval_modifying_expression(current, &mut out);
+                }
                 Expr::NOT => {
                     is_not = true;
                 }

@@ -19,7 +19,7 @@ impl Types {
 pub struct Interpreter {
     pub variables: HashMap<String, Cell<Types>>,
     pub functions: HashMap<String, ast::FuncAssign>,
-    pub internal_functions: HashMap<String, fn(Vec<Types>) -> Types>,
+    pub internal_functions: HashMap<String, fn(&Vec<Types>) -> Types>,
     pub previous_context: Option<Box<Interpreter>>,
     pub global_context: Option<Box<Interpreter>>,
 }
@@ -58,7 +58,7 @@ impl Interpreter {
 
         return None;
     }
-    pub fn get_internal(&self, internal_function: &String) -> Option<fn(Vec<Types>) -> Types> {
+    pub fn get_internal(&self, internal_function: &String) -> Option<fn(&Vec<Types>) -> Types> {
         if let Some(v) = self.global_context.as_ref() {
             return v.get_internal(internal_function);
         }

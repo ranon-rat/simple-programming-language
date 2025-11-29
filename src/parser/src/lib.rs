@@ -240,7 +240,6 @@ fn continue_until_another_op(input: &Vec<Expr>, index: &mut usize) -> (Vec<Expr>
 fn normalize_parse_expression(input: &Vec<Expr>) -> Vec<Expr> {
     let mut out = Vec::new();
     let mut i: usize = 0;
-
     while i < input.len() {
         let mut we_coming_operation = false;
         let current = &input[i];
@@ -260,7 +259,9 @@ fn normalize_parse_expression(input: &Vec<Expr>) -> Vec<Expr> {
                         }));
                         we_coming_operation = true;
                     }
-                    _ => {}
+                    _ => {
+                        out.push(current.clone());
+                    }
                 }
             }
 

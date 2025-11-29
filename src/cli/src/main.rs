@@ -1,9 +1,11 @@
 use interpreter::Interpreter;
 use lexer::{tokenize, tokens::LexerError};
-use parser::{self, parse_expression};
+use parser::{self, parse};
 fn main() {
     let program = r#"
-(2*3+1)>=1
+    a=12;
+    (2*3+1)>=1;
+    a==12;
     "#
     .to_string();
     match tokenize(&program) {
@@ -16,13 +18,11 @@ fn main() {
             for i in 0..v.len() {
                 println!("{i} {:?}", v[i]);
             }
-
             let mut index = 0;
-            let (expression, is_bool) = parse_expression(&v, &mut index);
-            dbg!(&expression);
+            let statements = parse(&v, &mut index);
+            dbg!(&statements);
             let mut interpreter = Interpreter::new();
-            
-            println!("{:?}", interpreter.eval_expression(&expression, is_bool));
+            println!("{:?}", interpreter.eval_statement(&statements));
         }
     }
     println!("Hello, world!");

@@ -318,6 +318,7 @@ impl Interpreter {
         let mut is_not = false;
         while i < expression.len() {
             let current = &expression[i];
+            println!("{:?} {}", current, i);
             match current {
                 Expr::VarCall(_)
                 | Expr::FuncCall(_)
@@ -326,7 +327,15 @@ impl Interpreter {
                 | Expr::String(_) => {
                     match previous_operation {
                         None => {
+                            // okay i obviously should avoid doing this and just
+                            // check if the next will be a boolean operation
+                            if let Some(value)=self.eval_boolean_operation(expression, &mut i, is_not) {
+                                    out=value.clone();
+                                    i+=1;
+                                    continue;
+                            }
                             let value = self.eval_value_parts(current);
+
                             out = self.eval_not(&value, is_not);
                         }
                         Some(previous_op) => {

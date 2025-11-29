@@ -3,7 +3,7 @@ use lexer::{tokenize, tokens::LexerError};
 use parser::{self, parse_expression};
 fn main() {
     let program = r#"
-(2*3+1)==7
+(2*3+1)>=1
     "#
     .to_string();
     match tokenize(&program) {

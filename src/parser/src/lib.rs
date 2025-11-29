@@ -281,6 +281,9 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
     let mut is_bool = false;
     while *index < program_tokens.len() {
         let current = &program_tokens[*index];
+        let mut we_coming_from_parenthesis = false;
+        println!("{:?} {}", current, *index);
+
         match current {
             // arithmetic operations
             Tokens::Add => {
@@ -354,10 +357,12 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
             Tokens::OpenParenthesis => {
                 *index += 1;
                 let (operations, operation_bool) = parse_expression(program_tokens, index);
+
                 out.push(Expr::Operations(ExprOperations {
                     instructions: operations,
                     is_bool: operation_bool,
                 }));
+                we_coming_from_parenthesis = true;
             }
             Tokens::String(v) => {
                 out.push(Expr::String(v.to_string()));
@@ -372,12 +377,19 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
                 return (normalize_parse_expression(&out), is_bool);
             }
         }
-        match &program_tokens[*index] {
-            Tokens::CloseParenthesis | Tokens::SemmiColon | Tokens::Comma => {
-                // },{}
-                break;
+        if *index < program_tokens.len() {
+            match &program_tokens[*index] {
+                Tokens::SemmiColon | Tokens::Comma => {
+                    // },{}
+                    break;
+                }
+                Tokens::CloseParenthesis => {
+                    if !we_coming_from_parenthesis {
+                        break;
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
         *index += 1;
     }

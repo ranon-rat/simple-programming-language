@@ -37,7 +37,7 @@ impl Interpreter {
                 }
                 _ => {}
             }
-            println!("{:?} {:?}", current, out);
+            println!("{:?}",  out);
 
             i += 1;
         }

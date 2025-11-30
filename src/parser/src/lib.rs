@@ -215,24 +215,23 @@ fn continue_until_another_op(input: &Vec<Expr>, index: &mut usize) -> (Vec<Expr>
             Expr::Add | Expr::Subtract => {
                 break;
             }
-            _ => {
-                out.push(current.clone());
-                match current {
-                    Expr::Equals
-                    | Expr::Different
-                    | Expr::BiggerThan
-                    | Expr::BiggerOrEqual
-                    | Expr::SmallerThan
-                    | Expr::SmallerOrEqual
-                    | Expr::OR
-                    | Expr::AND
-                    | Expr::NOT => {
-                        is_bool = true;
-                    }
-                    _ => {}
+          
+            _ => match current {
+                Expr::Equals
+                | Expr::Different
+                | Expr::BiggerThan
+                | Expr::BiggerOrEqual
+                | Expr::SmallerThan
+                | Expr::SmallerOrEqual
+                | Expr::OR
+                | Expr::AND
+                | Expr::NOT => {
+                    is_bool = true;
                 }
-            }
+                _ => {}
+            },
         }
+        out.push(current.clone());
         *index += 1;
     }
     return (out, is_bool);
@@ -252,6 +251,7 @@ fn normalize_parse_expression(input: &Vec<Expr>) -> Vec<Expr> {
                 let next = &input[i + 1];
                 match next {
                     Expr::Divide | Expr::Multiply | Expr::Mod => {
+                       
                         let (op, is_bool) = continue_until_another_op(input, &mut i);
                         out.push(Expr::Operations(ExprOperations {
                             instructions: op,

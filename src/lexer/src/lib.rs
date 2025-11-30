@@ -18,9 +18,14 @@ fn slash_match(
         return;
     }
     if *index + 1 >= limit {
+        out.push(Tokens::Divide);
+
         return;
     }
-
+   if string_part.len() > 0 {
+        out.push(Tokens::Statement(string_part.to_string()));
+        string_part.clear();
+    }
     match input[*index + 1] as char {
         '/' => {
             *line_comment = true;
@@ -38,10 +43,7 @@ fn slash_match(
             out.push(Tokens::Divide);
         }
     }
-    if string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
-    }
+ 
 }
 
 fn quotes_match(

@@ -18,7 +18,7 @@ pub struct ExprOperations {
 #[derive(Debug, Clone)]
 pub struct FuncCall {
  pub   name: String,
- pub   arguments: Vec<Expr>,
+ pub   arguments: Vec<ExprOperations>,
 }
 
 #[derive(Debug, Clone)]

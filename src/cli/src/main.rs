@@ -22,8 +22,11 @@ fn main() {
             let mut index = 0;
             let statements = parse(&v, &mut index);
             dbg!(&statements);
-            let mut interpreter = Interpreter::new();
-            println!("OUT {:?}", interpreter.eval_statement(&statements));
+            let interpreter = Interpreter::new_ctx();
+            let (ret, _) = interpreter
+                .borrow_mut()
+                .eval_statement(&interpreter, &statements);
+            println!("OUT {:?}", ret);
         }
     }
     println!("Hello, world!");

@@ -1,4 +1,6 @@
 use interpreter::Interpreter;
+use std::rc::Rc;
+use std::cell::RefCell;
 use lexer::{tokenize, tokens::LexerError};
 use parser::{self, parse};
 fn main() {
@@ -25,10 +27,9 @@ fn main() {
             let mut index = 0;
             let statements = parse(&v, &mut index);
             dbg!(&statements);
-            let interpreter = Interpreter::new_ctx();
-            let (ret, _) = Interpreter::eval_statement(
-                &mut interpreter.borrow_mut(),
-                &interpreter,
+            let interpreter = Interpreter::new();
+            let (ret, _) =interpreter.eval_statement(
+                &Rc::new(RefCell::from(interpreter)),
                 &statements,
             );
             println!("OUT {:?}", ret);

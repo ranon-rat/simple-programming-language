@@ -48,12 +48,12 @@ impl Interpreter {
         return Rc::new(RefCell::new(Interpreter::new()));
     }
 
-    pub fn get_var(&mut self, var_name: &str) -> Option<Rc<RefCell<Types>>> {
+    pub fn get_var(&self, var_name: &str) -> Option<Rc<RefCell<Types>>> {
         if let Some(v) = self.variables.get(var_name) {
             return Some(v.clone());
         }
-        if let Some(prev) = self.previous_context.as_mut() {
-            return prev.borrow_mut().get_var(var_name);
+        if let Some(prev) = self.previous_context.as_ref() {
+            return prev.borrow().get_var(var_name);
         }
         None
     }

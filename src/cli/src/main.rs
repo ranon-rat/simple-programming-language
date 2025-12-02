@@ -9,7 +9,10 @@ fn main() {
     a==12;
     a/=2;
     if(a==6){
-      print a+"\ntest\n";
+      print a+" sup dude\n";
+    }
+    for(i=0;i<10;i++){
+        print i+" sup dude\n";    
     }
     "#
     .to_string();
@@ -23,12 +26,14 @@ fn main() {
             for i in 0..v.len() {
                 println!("{i} {:?}", v[i]);
             }
+            println!();
             let mut index = 0;
             let statements = parse(&v, &mut index);
             dbg!(&statements);
-            let mut interpreter = Interpreter::new();
-            let (ret, _) = interpreter.eval_statement( &statements);
-            println!("OUT {:?}", ret);
+            println!();
+           let mut interpreter = Interpreter::new();
+           let (ret, _) = interpreter.eval_statement( &statements);
+           println!("OUT {:?}", ret);
         }
     }
 }

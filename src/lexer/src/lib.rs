@@ -22,10 +22,7 @@ fn slash_match(
 
         return;
     }
-   if string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
-    }
+
     match input[*index + 1] as char {
         '/' => {
             *line_comment = true;
@@ -43,7 +40,6 @@ fn slash_match(
             out.push(Tokens::Divide);
         }
     }
- 
 }
 
 fn quotes_match(
@@ -54,11 +50,6 @@ fn quotes_match(
     inside_comment: bool,
 ) {
     if inside_comment {
-        return;
-    }
-    if !*inside_string && string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
         return;
     }
 
@@ -79,7 +70,6 @@ fn quotes_match(
 }
 fn space_match(
     cell: char,
-    out: &mut Vec<Tokens>,
     string_part: &mut String,
     inside_string: bool,
     inside_comment: bool,
@@ -95,12 +85,21 @@ fn space_match(
         string_part.push(cell);
         return;
     }
+}
+fn add_statement(
+    out: &mut Vec<Tokens>,
+    string_part: &mut String,
+    inside_string: bool,
+    inside_comment: bool,
+) {
+    if inside_string || inside_comment {
+        return;
+    }
     if string_part.len() > 0 {
         out.push(Tokens::Statement(string_part.to_string()));
         string_part.clear();
     }
 }
-
 fn arithmetic_match(
     cell: char,
     out: &mut Vec<Tokens>,
@@ -130,10 +129,6 @@ fn arithmetic_match(
         return;
     }
 
-    if !inside_string && string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
-    }
     if inside_string {
         string_part.push(cell);
         return;
@@ -256,10 +251,7 @@ fn single_tokens(
         string_part.push(cell);
         return;
     }
-    if string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
-    }
+
     out.push(new);
 }
 fn boolean_operators(
@@ -280,10 +272,7 @@ fn boolean_operators(
         string_part.push(cell);
         return Ok(());
     }
-    if string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
-    }
+
     let next_index = *index + 1;
     let has_next = next_index < limit;
     match cell {
@@ -339,10 +328,7 @@ fn logical_operators(
         string_part.push(cell);
         return;
     }
-    if string_part.len() > 0 {
-        out.push(Tokens::Statement(string_part.to_string()));
-        string_part.clear();
-    }
+
     match cell {
         '=' => two_cases_arithmetic(Tokens::Equals, Tokens::EqualsTo, out, input, index, limit),
         '>' => two_cases_arithmetic(
@@ -389,6 +375,7 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
         let inside_comment = multiline_comment || line_comment;
         match cell {
             '/' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
                 backslash = false;
                 slash_match(
                     &mut out,
@@ -402,6 +389,8 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 );
             }
             '"' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
+
                 quotes_match(
                     &mut out,
                     &mut string_part,
@@ -412,10 +401,11 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 backslash = false;
             }
             ' ' | '\n' | '\t' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
+
                 backslash = false;
                 space_match(
                     cell,
-                    &mut out,
                     &mut string_part,
                     inside_string,
                     inside_comment,
@@ -423,6 +413,8 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 );
             }
             '*' | '+' | '-' | '%' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
+
                 backslash = false;
                 arithmetic_match(
                     cell,
@@ -457,6 +449,7 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 }
             }
             ',' | '(' | ')' | '{' | '}' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
                 let token = get_single_token(cell);
                 backslash = false;
                 single_tokens(
@@ -469,6 +462,8 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 );
             }
             '&' | '|' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
+
                 match boolean_operators(
                     cell,
                     &mut out,
@@ -484,6 +479,7 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 }
             }
             '!' | '=' | '<' | '>' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
                 logical_operators(
                     cell,
                     &mut out,
@@ -496,14 +492,12 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 );
             }
             ';' => {
+                add_statement(&mut out, &mut string_part, inside_string, inside_comment);
+
                 backslash = false;
                 if inside_string {
                     string_part.push(cell);
                 } else {
-                    if string_part.len() > 0 {
-                        out.push(Tokens::Statement(string_part.to_string()));
-                        string_part.clear();
-                    }
                     out.push(Tokens::SemmiColon);
                 }
             }

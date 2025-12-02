@@ -1,11 +1,8 @@
 mod expression;
-use crate::expression::{parse_expression};
 use crate::ast::Stmt;
+use crate::expression::parse_expression;
 
-use ast::{
-    self, Elif, Expr, ExprOperations, ForLoop, FuncAssign,  If, 
-      WhileLoop,
-};
+use ast::{self, Elif, Expr, ExprOperations, ForLoop, FuncAssign, If, WhileLoop};
 use lexer::{self, tokens::Tokens};
 
 fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
@@ -40,34 +37,34 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
         }));
     }
 
-    *index += 1;
     let mut elif_then: Vec<Elif> = Vec::new();
     let mut else_then: Vec<Stmt> = Vec::new();
-    while *index < program_tokens.len() {
+    let mut i = *index + 1;
+    while i < program_tokens.len() {
         match &program_tokens[*index] {
             Tokens::Statement(v) => match v.as_str() {
                 "else" => {
-                    if *index + 2 >= program_tokens.len() {
+                    if i + 2 >= program_tokens.len() {
                         break;
                     }
-                    *index += 2;
-                    else_then = parse(program_tokens, index);
+                    i += 2;
+                    else_then = parse(program_tokens, &mut i);
                     break;
                 }
                 "elif" => {
                     // elif, then i jump to (
                     // elif (
-                    if *index + 2 >= program_tokens.len() {
+                    if i + 2 >= program_tokens.len() {
                         break;
                     }
-                    *index += 2;
-                    let (elif_condition, is_bool) = parse_expression(program_tokens, index);
-                    if *index + 2 >= program_tokens.len() {
+                    i += 2;
+                    let (elif_condition, is_bool) = parse_expression(program_tokens, &mut i);
+                    if i + 2 >= program_tokens.len() {
                         // ){
                         break;
                     }
                     *index += 2;
-                    let elif_body = parse(program_tokens, index);
+                    let elif_body = parse(program_tokens, &mut i);
                     elif_then.push(Elif {
                         condition_bool: is_bool,
                         condition: elif_condition,
@@ -78,8 +75,11 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
             },
             _ => break,
         }
-        *index += 1;
+        i += 1;
     }
+    *index = i - 1;
+    let current = &program_tokens[*index];
+    println!("nigga {:?}", current);
     out.push(Stmt::If(If {
         condition_bool: if_expr_bool,
         condition: if_expr.to_vec(),
@@ -132,7 +132,9 @@ fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
 fn parse_init_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Expr> {
     let mut out: Vec<Expr> = Vec::new();
     while *index < program_tokens.len() {
-        match &program_tokens[*index] {
+        let current = &program_tokens[*index];
+        println!("NIGGA {:?}", current);
+        match current {
             Tokens::SemmiColon | Tokens::CloseParenthesis => {
                 return out;
             }
@@ -158,6 +160,7 @@ fn parse_init_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<E
 fn parse_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
     // we start after the for(
     // i=1
+    println!("CHECK THIS{:?}", &program_tokens[*index]);
 
     let init = parse_init_for_loop(program_tokens, index);
     // ;
@@ -234,17 +237,18 @@ fn handle_statement(
             "print" => {
                 let has_next = *index + 1 < program_tokens.len();
                 if !has_next {
-                    return out.push(Stmt::Print(Expr::Operations(ExprOperations {
+                    return out.push(Stmt::Print(ExprOperations {
                         instructions: Vec::new(),
                         is_bool: false,
-                    })));
+                    }));
                 }
                 *index += 1;
                 let (returning, is_bool) = parse_expression(program_tokens, index);
-                return out.push(Stmt::Print(Expr::Operations(ExprOperations {
+                println!("{} {:?}", *index, returning);
+                return out.push(Stmt::Print(ExprOperations {
                     instructions: returning,
                     is_bool: is_bool,
-                })));
+                }));
             }
             "" => panic!("empty statement this shouldnt happen"),
             _ => {
@@ -270,6 +274,7 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
 
     while *index < tokens.len() {
         let cell = &tokens[*index];
+        println!("{:?}", cell);
         match cell {
             Tokens::OpenCurlyBrackets => {
                 *index += 1;

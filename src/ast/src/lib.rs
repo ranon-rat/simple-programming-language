@@ -105,7 +105,7 @@ pub struct WhileLoop{
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Expression(Expr),
-    Print(Expr),  // print "", print x, print func(), print 12+1, print (1+2+3)
+    Print(ExprOperations),  // print "", print x, print func(), print 12+1, print (1+2+3)
     Return(Expr), // return, return "all good", return 123, return a==b, etc
     Continue,
     Break,

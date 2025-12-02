@@ -274,7 +274,6 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
     while *index < program_tokens.len() {
         let current = &program_tokens[*index];
         let mut we_coming_from_parenthesis = false;
-        println!("{:?} {}", current, *index);
 
         match current {
             // arithmetic operations

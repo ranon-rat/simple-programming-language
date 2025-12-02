@@ -44,7 +44,7 @@ impl Interpreter {
             global_context: None,
         }
     }
-  
+
     pub fn get_var(&self, var_name: &str) -> Option<Rc<RefCell<Types>>> {
         if let Some(v) = self.variables.get(var_name) {
             return Some(v.clone());
@@ -96,7 +96,8 @@ impl Interpreter {
         }
         return None;
     }
-    pub fn new_context(&self, ctx: Ctx) -> Interpreter {
+    pub fn new_context(&mut self) -> Interpreter {
+        let ctx: Ctx = self;
         let mut interpreter = Interpreter::new();
         interpreter.global_context = self.global_context.clone().or(Some(ctx));
         interpreter.previous_context = Some(ctx);

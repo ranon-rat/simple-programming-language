@@ -1,12 +1,11 @@
-use crate::types::{Ctx, Interpreter, ReasonsForStopping, Types};
+use crate::types::{ Interpreter, ReasonsForStopping, Types};
 use ast::{Expr, FuncCall, ModifyingOperation};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 impl Interpreter {
     fn eval_function(&mut self, func_call: &FuncCall) -> Types {
-        let ctx: Ctx = self;
-        let mut interpreter = self.new_context(ctx);
+        let mut interpreter = self.new_context();
 
         let func_opt = self.get_func(&func_call.name);
         let function = match &func_opt {

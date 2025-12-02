@@ -36,10 +36,10 @@ impl Interpreter {
                 .unwrap_or(Types::Number(0.0)),
 
             Expr::Operations(operations) => {
-                self.eval_expression(ctx, &operations.instructions, operations.is_bool)
+                self.eval_expression(&ctx.clone(), &operations.instructions, operations.is_bool)
             }
 
-            Expr::FuncCall(func_call) => self.eval_function(ctx, func_call),
+            Expr::FuncCall(func_call) => self.eval_function(&ctx, func_call),
             Expr::String(v) => Types::String(v.to_string()),
             Expr::Number(v) => Types::Number(*v),
             _ => {
@@ -70,7 +70,7 @@ impl Interpreter {
             | Expr::Number(_)
             | Expr::Operations(_)
             | Expr::String(_) => {
-                let value = self.eval_value_parts(ctx, current);
+                let value = self.eval_value_parts(&ctx.clone(), current);
                 return self.eval_not(&value, not);
             }
             _ => {
@@ -102,11 +102,16 @@ impl Interpreter {
         }
         //
         let value_a = self.next_if_not(ctx, expression, index, not);
+        println!("{:?}",value_a);
 
         *index += 1;
         let token = &expression[*index];
+        println!("{:?}",token);
+
         *index += 1;
         let value_b = self.next_if_not(ctx, expression, index, false);
+        println!("{:?}",value_b);
+
         let result = match token {
             Expr::Equals => value_a == value_b,
             Expr::Different => value_a != value_b,
@@ -269,14 +274,14 @@ impl Interpreter {
                 self.eval_self_modifying_operation(ctx, modifying, &Expr::Multiply, out);
             }
             Expr::DivideTo(modifying) => {
-                self.eval_self_modifying_operation(ctx, modifying, &Expr::Multiply, out);
+                self.eval_self_modifying_operation(ctx, modifying, &Expr::Divide, out);
             }
             Expr::ModTo(modifying) => {
                 self.eval_self_modifying_operation(ctx, modifying, &Expr::Mod, out);
             }
             Expr::VarAssign(var_assign) => {
                 let eval = self.eval_expression(
-                    ctx,
+                    &ctx.clone(),
                     &var_assign.value.instructions,
                     var_assign.value.is_bool,
                 );

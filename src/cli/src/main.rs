@@ -6,7 +6,10 @@ fn main() {
     a=12;
     (2*3+1)>=1;
     a==12;
-    a/2
+    a/=2;
+    if(a==6){
+      print a+"\n";
+    }
     "#
     .to_string();
     match tokenize(&program) {
@@ -23,9 +26,11 @@ fn main() {
             let statements = parse(&v, &mut index);
             dbg!(&statements);
             let interpreter = Interpreter::new_ctx();
-            let (ret, _) = interpreter
-                .borrow_mut()
-                .eval_statement(&interpreter, &statements);
+            let (ret, _) = Interpreter::eval_statement(
+                &mut interpreter.borrow_mut(),
+                &interpreter,
+                &statements,
+            );
             println!("OUT {:?}", ret);
         }
     }

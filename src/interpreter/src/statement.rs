@@ -73,22 +73,22 @@ impl Interpreter {
     pub fn eval_statement(&mut self, ctx: &Ctx, lines: &Vec<Stmt>) -> (Types, ReasonsForStopping) {
         let mut out = Types::Number(0.0);
         let mut i = 0;
-        let mut current_scope = ctx.borrow_mut();
 
         while i < lines.len() {
+            
             let current = &lines[i];
             match current {
                 Stmt::FuncAssign(func_assign) => {
-                    current_scope.functions.insert(
+                    self.functions.insert(
                         func_assign.name.to_string(),
                         Rc::new(RefCell::new(func_assign.clone())),
                     );
                 }
                 Stmt::Expression(eval) => {
-                    current_scope.eval_expression_change_output(ctx, &mut out, eval);
+                    self.eval_expression_change_output(ctx, &mut out, eval);
                 }
                 Stmt::Return(eval) => {
-                    current_scope.eval_expression_change_output(ctx, &mut out, eval);
+                    self.eval_expression_change_output(ctx, &mut out, eval);
                     return (out, ReasonsForStopping::ReturnStatement);
                 }
                 Stmt::Break => {
@@ -98,7 +98,8 @@ impl Interpreter {
                     return (out, ReasonsForStopping::ContinueStatement);
                 }
                 Stmt::Print(eval_expr) => {
-                    current_scope.eval_expression_change_output(ctx, &mut out, eval_expr);
+                    println!("printing");
+                    self.eval_expression_change_output(ctx, &mut out, eval_expr);
                     match &out {
                         Types::Number(v) => {
                             print!("{}", v);
@@ -109,7 +110,7 @@ impl Interpreter {
                     }
                 }
                 Stmt::Block(_block) => {
-                    let (value, reason) = current_scope.eval_block(ctx, lines);
+                    let (value, reason) = self.eval_block(ctx, lines);
                     match &reason {
                         ReasonsForStopping::Finished => {
                             out = value.clone();
@@ -118,21 +119,21 @@ impl Interpreter {
                     }
                 }
                 Stmt::If(if_stmt) => {
-                    let (exit, reason) = current_scope.eval_if_statement(ctx, if_stmt);
+                    let (exit, reason) = self.eval_if_statement(ctx, if_stmt);
                     match &reason {
                         ReasonsForStopping::Finished => {}
                         _ => return (exit, reason),
                     }
                 }
                 Stmt::WhileLoop(while_loop) => {
-                    let (exit, reason) = current_scope.eval_while_loop(ctx, while_loop);
+                    let (exit, reason) = self.eval_while_loop(ctx, while_loop);
                     match &reason {
                         ReasonsForStopping::ReturnStatement => return (exit, reason),
                         _ => {}
                     }
                 }
                 Stmt::ForLoop(for_loop) => {
-                    let (exit,reason) = current_scope.eval_for_loop(ctx, for_loop);
+                    let (exit,reason) = self.eval_for_loop(ctx, for_loop);
                     match &reason {
                         ReasonsForStopping::ReturnStatement => return (exit, reason),
                         _ => {}

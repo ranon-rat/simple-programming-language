@@ -36,7 +36,7 @@ impl Interpreter {
                 .unwrap_or(Types::Number(0.0)),
 
             Expr::Operations(operations) => {
-                self.eval_expression(&ctx.clone(), &operations.instructions, operations.is_bool)
+                self.eval_expression(&ctx, &operations.instructions, operations.is_bool)
             }
 
             Expr::FuncCall(func_call) => self.eval_function(&ctx, func_call),
@@ -223,7 +223,7 @@ impl Interpreter {
         out: &mut Types,
     ) {
         let eval =
-            self.eval_expression(ctx, &modifying.value.instructions, modifying.value.is_bool);
+            self.eval_expression(ctx    , &modifying.value.instructions, modifying.value.is_bool);
         let current_val = match self.get_var(&modifying.name) {
             Some(cell) => {
                 let borrowed = cell.borrow();
@@ -281,7 +281,7 @@ impl Interpreter {
             }
             Expr::VarAssign(var_assign) => {
                 let eval = self.eval_expression(
-                    &ctx.clone(),
+                    &ctx,
                     &var_assign.value.instructions,
                     var_assign.value.is_bool,
                 );

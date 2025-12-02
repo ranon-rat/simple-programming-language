@@ -4,31 +4,39 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 impl Interpreter {
-    fn eval_function(&mut self, ctx: &Ctx, func_call: &FuncCall) -> Types {
-        let new_ctx=self.new_context(ctx);
-        let mut interpreter=new_ctx.borrow_mut();
-        let func_opt = self.get_func(&func_call.name);
-        let function = match &func_opt {
-            Some(f) => f.borrow(),
-            None => return Types::Number(0.0),
-        };
-        let mut i = 0;
-        while i < function.arguments.len() && i < func_call.arguments.len() {
-            let var_name = &function.arguments[i];
-            let expr = &func_call.arguments[i];
-            let eval = self.eval_expression(ctx, &expr.instructions, expr.is_bool);
-            interpreter
-                .variables
-                .insert(var_name.to_string(), Rc::new(RefCell::new(eval.clone())));
-            i += 1;
-        }
-        let (out, stop_reason) = interpreter.eval_statement(&new_ctx, &function.body);
-        match &stop_reason {
-            ReasonsForStopping::ReturnStatement => return out,
-            _ => return Types::Number(0.0),
+    fn eval_function(&mut self, ctx: Ctx, func_call: &FuncCall) -> Types {
+        let new_ctx = self.new_context(ctx);
+        unsafe {
+            match new_ctx.as_mut() {
+                Some(interpreter) => {
+                    let func_opt = self.get_func(&func_call.name);
+                    let function = match &func_opt {
+                        Some(f) => f.borrow(),
+                        None => return Types::Number(0.0),
+                    };
+                    let mut i = 0;
+                    while i < function.arguments.len() && i < func_call.arguments.len() {
+                        let var_name = &function.arguments[i];
+                        let expr = &func_call.arguments[i];
+                        let eval = self.eval_expression(ctx, &expr.instructions, expr.is_bool);
+                        interpreter
+                            .variables
+                            .insert(var_name.to_string(), Rc::new(RefCell::new(eval.clone())));
+                        i += 1;
+                    }
+                    let (out, stop_reason) = interpreter.eval_statement(new_ctx, &function.body);
+                    match &stop_reason {
+                        ReasonsForStopping::ReturnStatement => return out,
+                        _ => return Types::Number(0.0),
+                    }
+                }
+                None => {
+                    return Types::Number(0.0);
+                }
+            }
         }
     }
-    fn eval_value_parts(&mut self, ctx: &Ctx, current: &Expr) -> Types {
+    fn eval_value_parts(&mut self, ctx: Ctx, current: &Expr) -> Types {
         match current {
             Expr::VarCall(var) => self
                 .get_var(&var.name)
@@ -36,10 +44,10 @@ impl Interpreter {
                 .unwrap_or(Types::Number(0.0)),
 
             Expr::Operations(operations) => {
-                self.eval_expression(&ctx, &operations.instructions, operations.is_bool)
+                self.eval_expression(ctx, &operations.instructions, operations.is_bool)
             }
 
-            Expr::FuncCall(func_call) => self.eval_function(&ctx, func_call),
+            Expr::FuncCall(func_call) => self.eval_function(ctx, func_call),
             Expr::String(v) => Types::String(v.to_string()),
             Expr::Number(v) => Types::Number(*v),
             _ => {
@@ -50,7 +58,7 @@ impl Interpreter {
 
     fn next_if_not(
         &mut self,
-        ctx: &Ctx,
+        ctx: Ctx,
         expression: &Vec<Expr>,
         index: &mut usize,
         not: bool,
@@ -70,7 +78,7 @@ impl Interpreter {
             | Expr::Number(_)
             | Expr::Operations(_)
             | Expr::String(_) => {
-                let value = self.eval_value_parts(&ctx.clone(), current);
+                let value = self.eval_value_parts(ctx, current);
                 return self.eval_not(&value, not);
             }
             _ => {
@@ -80,7 +88,7 @@ impl Interpreter {
     }
     fn eval_boolean_operation(
         &mut self,
-        ctx: &Ctx,
+        ctx: Ctx,
         expression: &Vec<Expr>,
         index: &mut usize,
         not: bool,
@@ -102,15 +110,15 @@ impl Interpreter {
         }
         //
         let value_a = self.next_if_not(ctx, expression, index, not);
-        println!("{:?}",value_a);
+        println!("{:?}", value_a);
 
         *index += 1;
         let token = &expression[*index];
-        println!("{:?}",token);
+        println!("{:?}", token);
 
         *index += 1;
         let value_b = self.next_if_not(ctx, expression, index, false);
-        println!("{:?}",value_b);
+        println!("{:?}", value_b);
 
         let result = match token {
             Expr::Equals => value_a == value_b,
@@ -187,7 +195,7 @@ impl Interpreter {
     }
     fn eval_previous_expression(
         &mut self,
-        ctx: &Ctx,
+        ctx: Ctx,
         expression: &Vec<Expr>,
         is_bool: bool,
         index: &mut usize,
@@ -216,14 +224,14 @@ impl Interpreter {
 
     pub fn eval_self_modifying_operation(
         &mut self,
-        ctx: &Ctx,
+        ctx: Ctx,
 
         modifying: &ModifyingOperation,
         operation: &Expr,
         out: &mut Types,
     ) {
         let eval =
-            self.eval_expression(ctx    , &modifying.value.instructions, modifying.value.is_bool);
+            self.eval_expression(ctx, &modifying.value.instructions, modifying.value.is_bool);
         let current_val = match self.get_var(&modifying.name) {
             Some(cell) => {
                 let borrowed = cell.borrow();
@@ -242,7 +250,7 @@ impl Interpreter {
             *out = var.clone();
         }
     }
-    pub fn eval_modifying_expression(&mut self, ctx: &Ctx, current: &Expr, out: &mut Types) {
+    pub fn eval_modifying_expression(&mut self, ctx: Ctx, current: &Expr, out: &mut Types) {
         match current {
             Expr::Increment(v) => {
                 if let Some(cell) = self.get_var(&v.name) {
@@ -281,7 +289,7 @@ impl Interpreter {
             }
             Expr::VarAssign(var_assign) => {
                 let eval = self.eval_expression(
-                    &ctx,
+                    ctx,
                     &var_assign.value.instructions,
                     var_assign.value.is_bool,
                 );
@@ -304,7 +312,7 @@ impl Interpreter {
             _ => {}
         }
     }
-    pub fn eval_expression(&mut self, ctx: &Ctx, expression: &Vec<Expr>, is_bool: bool) -> Types {
+    pub fn eval_expression(&mut self, ctx: Ctx, expression: &Vec<Expr>, is_bool: bool) -> Types {
         let mut out = Types::Number(0.0);
         let mut previous_operation: Option<&Expr> = None;
         let mut i: usize = 0;

@@ -1,8 +1,7 @@
-use interpreter::Interpreter;
-use std::rc::Rc;
-use std::cell::RefCell;
+use interpreter::{Interpreter, types::Ctx};
 use lexer::{tokenize, tokens::LexerError};
 use parser::{self, parse};
+
 fn main() {
     let program = r#"
     a=12;
@@ -10,7 +9,7 @@ fn main() {
     a==12;
     a/=2;
     if(a==6){
-      print a+"\n";
+      print a+"\nnigga";
     }
     "#
     .to_string();
@@ -27,11 +26,9 @@ fn main() {
             let mut index = 0;
             let statements = parse(&v, &mut index);
             dbg!(&statements);
-            let interpreter = Interpreter::new();
-            let (ret, _) =interpreter.eval_statement(
-                &Rc::new(RefCell::from(interpreter)),
-                &statements,
-            );
+            let mut interpreter = Interpreter::new();
+            let ctx: Ctx = &mut interpreter;
+            let (ret, _) = interpreter.eval_statement(ctx, &statements);
             println!("OUT {:?}", ret);
         }
     }

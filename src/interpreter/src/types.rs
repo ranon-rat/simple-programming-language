@@ -24,13 +24,13 @@ pub enum ReasonsForStopping {
     ReturnStatement,
     Finished,
 }
-pub type Ctx = Rc<RefCell<Interpreter>>;
+pub type Ctx = *mut Interpreter;
 pub struct Interpreter {
     pub variables: HashMap<String, Rc<RefCell<Types>>>,
     pub functions: HashMap<String, Rc<RefCell<ast::FuncAssign>>>,
     pub internal_functions: HashMap<String, fn(&Vec<Types>) -> Types>,
-    pub previous_context: Option<Rc<RefCell<Interpreter>>>,
-    pub global_context: Option<Rc<RefCell<Interpreter>>>,
+    pub previous_context: Option<Ctx>,
+    pub global_context: Option<Ctx>,
 }
 
 impl Interpreter {
@@ -45,7 +45,7 @@ impl Interpreter {
     }
 
     pub fn new_ctx() -> Ctx {
-        return Rc::new(RefCell::new(Interpreter::new()));
+        return &mut Interpreter::new();
     }
 
     pub fn get_var(&self, var_name: &str) -> Option<Rc<RefCell<Types>>> {
@@ -53,7 +53,12 @@ impl Interpreter {
             return Some(v.clone());
         }
         if let Some(prev) = self.previous_context.as_ref() {
-            return prev.borrow().get_var(var_name);
+            unsafe {
+                match prev.as_ref() {
+                    Some(i) => return i.get_var(var_name),
+                    None => {}
+                }
+            }
         }
         None
     }
@@ -63,17 +68,24 @@ impl Interpreter {
             return Some(f.clone());
         }
         if let Some(v) = self.previous_context.as_ref() {
-            match v.borrow_mut().get_func(function) {
-                Some(f) => return Some(f),
-                None => {}
-            };
+            unsafe {
+                match v.as_ref() {
+                    Some(i) => return i.get_func(function),
+                    None => {}
+                }
+            }
         }
 
         return None;
     }
     pub fn get_internal(&self, internal_function: &String) -> Option<fn(&Vec<Types>) -> Types> {
         if let Some(v) = self.global_context.as_ref() {
-            return v.borrow_mut().get_internal(internal_function);
+            unsafe {
+                match v.as_ref() {
+                    Some(i) => return i.get_internal(internal_function),
+                    None => {}
+                }
+            }
         }
         // Primero busca en el scope actual
         if let Some(f) = self.internal_functions.get(internal_function) {
@@ -81,16 +93,21 @@ impl Interpreter {
         }
         return None;
     }
-    pub fn new_context(&self, ctx: &Ctx) -> Ctx {
+    pub fn new_context(&self, ctx: Ctx) -> Ctx {
         let new_ctx = Interpreter::new_ctx();
-        let mut interpreter = new_ctx.borrow_mut();
-
-        let global = match &self.global_context {
-            Some(g) => Some(g.clone()),
-            None => Some(ctx.clone()),
-        };
-        interpreter.global_context = global;
-        interpreter.previous_context=Some(ctx.clone());
-        return new_ctx.clone();
+        unsafe {
+            match new_ctx.as_mut() {
+                Some(interpreter) => {
+                    let global = match &self.global_context {
+                        Some(g) => Some(g.clone()),
+                        None => Some(ctx.clone()),
+                    };
+                    interpreter.global_context = global;
+                    interpreter.previous_context = Some(ctx.clone());
+                }
+                None => {}
+            };
+        }
+        return new_ctx;
     }
 }

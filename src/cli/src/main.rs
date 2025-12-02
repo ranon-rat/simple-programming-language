@@ -6,11 +6,12 @@ fn main() {
     let program = r#"
     a=6;
     if(a!=6){
+      print a+"\n";
       print a+" sup dude\n";
-    }elif(a++){
-      print a;
+    }elif(a==7){
+      print a+"\n";
     }else{
-        print "nnigga"
+        print "SUP SUP\n"
     }
     for(i=0;i<10;i++){
         print i+" sup dude\n";    

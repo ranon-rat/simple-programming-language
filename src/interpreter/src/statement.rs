@@ -137,7 +137,6 @@ impl Interpreter {
                     }
                 }
             }
-            println!("{:?}", out);
 
             i += 1;
         }

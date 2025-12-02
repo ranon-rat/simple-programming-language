@@ -96,15 +96,12 @@ impl Interpreter {
         }
         //
         let value_a = self.next_if_not(expression, index, not);
-        println!("{:?}", value_a);
 
         *index += 1;
         let token = &expression[*index];
-        println!("{:?}", token);
 
         *index += 1;
         let value_b = self.next_if_not(expression, index, false);
-        println!("{:?}", value_b);
 
         let result = match token {
             Expr::Equals => value_a == value_b,

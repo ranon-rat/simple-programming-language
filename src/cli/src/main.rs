@@ -31,5 +31,4 @@ fn main() {
             println!("OUT {:?}", ret);
         }
     }
-    println!("Hello, world!");
 }

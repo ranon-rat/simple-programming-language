@@ -1,15 +1,16 @@
-use interpreter::{Interpreter};
+use interpreter::Interpreter;
 use lexer::{tokenize, tokens::LexerError};
 use parser::{self, parse};
 
 fn main() {
     let program = r#"
-    a=12;
-    (2*3+1)>=1;
-    a==12;
-    a/=2;
-    if(a==6){
+    a=6;
+    if(a!=6){
       print a+" sup dude\n";
+    }elif(a++){
+      print a;
+    }else{
+        print "nnigga"
     }
     for(i=0;i<10;i++){
         print i+" sup dude\n";    
@@ -31,9 +32,9 @@ fn main() {
             let statements = parse(&v, &mut index);
             dbg!(&statements);
             println!();
-           let mut interpreter = Interpreter::new();
-           let (ret, _) = interpreter.eval_statement( &statements);
-           println!("OUT {:?}", ret);
+            let mut interpreter = Interpreter::new();
+            let (ret, _) = interpreter.eval_statement(&statements);
+            println!("OUT {:?}", ret);
         }
     }
 }

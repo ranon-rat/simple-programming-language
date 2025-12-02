@@ -1,7 +1,10 @@
 use ast::{Expr, ExprOperations, FuncCall, ModifyingOperation, VarAssign, VarCalling};
 use lexer::tokens::Tokens;
 
-pub fn parse_argument_functions(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<ExprOperations> {
+pub fn parse_argument_functions(
+    program_tokens: &Vec<Tokens>,
+    index: &mut usize,
+) -> Vec<ExprOperations> {
     let mut arguments: Vec<ExprOperations> = Vec::new();
     while *index < program_tokens.len() {
         let current = &program_tokens[*index];
@@ -154,13 +157,15 @@ fn parse_statement_expr(
                         // increment decrement
                         Tokens::Increment => {
                             // ++
+                            *index += 1;
                             out.push(Expr::Increment(VarCalling {
                                 name: variable_name.to_string(),
                             }));
-                            return true;
                         }
                         Tokens::Decrement => {
                             // --
+                            *index += 1;
+
                             out.push(Expr::Decrement(VarCalling {
                                 name: variable_name.to_string(),
                             }));
@@ -221,7 +226,7 @@ pub fn continue_until_another_op(input: &Vec<Expr>, index: &mut usize) -> Vec<Ex
                 break;
             }
 
-            _ => {},
+            _ => {}
         }
         out.push(current.clone());
         *index += 1;
@@ -370,7 +375,7 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
         }
         if *index < program_tokens.len() {
             match &program_tokens[*index] {
-                Tokens::SemmiColon | Tokens::Comma => {
+                Tokens::SemmiColon | Tokens::Comma | Tokens::CloseCurlyBrackets => {
                     // },{}
                     break;
                 }

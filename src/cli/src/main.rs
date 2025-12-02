@@ -4,11 +4,11 @@ use parser::{self, parse};
 
 fn main() {
     let program = r#"
-    a=6;
-    if(a!=6){
+    a=0;
+    if(a==6){
       print a+"\n";
       print a+" sup dude\n";
-    }elif(a==7){
+    }elif(a++){
       print a+"\n";
     }else{
         print "SUP SUP\n"

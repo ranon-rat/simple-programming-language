@@ -1,4 +1,4 @@
-use interpreter::{Interpreter, types::Ctx};
+use interpreter::{Interpreter};
 use lexer::{tokenize, tokens::LexerError};
 use parser::{self, parse};
 
@@ -27,8 +27,7 @@ fn main() {
             let statements = parse(&v, &mut index);
             dbg!(&statements);
             let mut interpreter = Interpreter::new();
-            let ctx: Ctx = &mut interpreter;
-            let (ret, _) = interpreter.eval_statement(ctx, &statements);
+            let (ret, _) = interpreter.eval_statement( &statements);
             println!("OUT {:?}", ret);
         }
     }

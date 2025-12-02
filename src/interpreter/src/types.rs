@@ -25,6 +25,7 @@ pub enum ReasonsForStopping {
     Finished,
 }
 pub type Ctx = *mut Interpreter;
+#[derive(Debug, Clone)]
 pub struct Interpreter {
     pub variables: HashMap<String, Rc<RefCell<Types>>>,
     pub functions: HashMap<String, Rc<RefCell<ast::FuncAssign>>>,
@@ -43,11 +44,7 @@ impl Interpreter {
             global_context: None,
         }
     }
-
-    pub fn new_ctx() -> Ctx {
-        return &mut Interpreter::new();
-    }
-
+  
     pub fn get_var(&self, var_name: &str) -> Option<Rc<RefCell<Types>>> {
         if let Some(v) = self.variables.get(var_name) {
             return Some(v.clone());
@@ -56,7 +53,9 @@ impl Interpreter {
             unsafe {
                 match prev.as_ref() {
                     Some(i) => return i.get_var(var_name),
-                    None => {}
+                    None => {
+                        return None;
+                    }
                 }
             }
         }
@@ -71,7 +70,9 @@ impl Interpreter {
             unsafe {
                 match v.as_ref() {
                     Some(i) => return i.get_func(function),
-                    None => {}
+                    None => {
+                        return None;
+                    }
                 }
             }
         }
@@ -83,7 +84,9 @@ impl Interpreter {
             unsafe {
                 match v.as_ref() {
                     Some(i) => return i.get_internal(internal_function),
-                    None => {}
+                    None => {
+                        return None;
+                    }
                 }
             }
         }
@@ -93,21 +96,10 @@ impl Interpreter {
         }
         return None;
     }
-    pub fn new_context(&self, ctx: Ctx) -> Ctx {
-        let new_ctx = Interpreter::new_ctx();
-        unsafe {
-            match new_ctx.as_mut() {
-                Some(interpreter) => {
-                    let global = match &self.global_context {
-                        Some(g) => Some(g.clone()),
-                        None => Some(ctx.clone()),
-                    };
-                    interpreter.global_context = global;
-                    interpreter.previous_context = Some(ctx.clone());
-                }
-                None => {}
-            };
-        }
-        return new_ctx;
+    pub fn new_context(&self, ctx: Ctx) -> Interpreter {
+        let mut interpreter = Interpreter::new();
+        interpreter.global_context = self.global_context.clone().or(Some(ctx));
+        interpreter.previous_context = Some(ctx);
+        return interpreter;
     }
 }

@@ -342,6 +342,9 @@ impl Interpreter {
                 Expr::NOT => {
                     is_not = true;
                 }
+                Expr::Read=>{
+                    todo!("read");
+                }
 
                 _ => {
                     is_not = false;

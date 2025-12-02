@@ -9,7 +9,7 @@ fn main() {
     a==12;
     a/=2;
     if(a==6){
-      print a+"\nnigga";
+      print a+"\ntest\n";
     }
     "#
     .to_string();

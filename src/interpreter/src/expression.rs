@@ -76,10 +76,7 @@ impl Interpreter {
             Expr::Number(v) => Types::Number(*v),
             Expr::Array(v) => self.eval_array(v),
             Expr::ArrayCall(v) => {
-                println!("chekc this out");
-                let o = self.eval_array_call(v);
-                println!("{:?}", o);
-                return o;
+                return self.eval_array_call(v);
             }
             _ => {
                 return Types::Number(0.0);

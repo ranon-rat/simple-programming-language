@@ -48,6 +48,9 @@ pub fn parse_argument_array(
                 });
             }
         }
+        if program_tokens[*index] == Tokens::CloseSquaredBrackets {
+            return arguments;
+        }
         *index += 1;
     }
     return arguments;
@@ -434,6 +437,7 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
                 }
             }
             Tokens::OpenSquaredBrackets => {
+                *index += 1;
                 let arguments = parse_argument_array(program_tokens, index);
                 out.push(Expr::Array(arguments.clone()));
                 we_coming_from_squared_brackets = true;

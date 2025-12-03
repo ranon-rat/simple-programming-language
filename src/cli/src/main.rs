@@ -4,18 +4,10 @@ use parser::{self, parse};
 
 fn main() {
     let program = r#"
-    a=0;
-    if(a==6){
-      print a+"\n";
-      print a+" sup dude\n";
-    }elif(a++){
-      print a+"\n";
-    }else{
-        print "SUP SUP\n"
-    }
-    for(i=0;i<10;i++){
-        print i+" sup dude\n";    
-    }
+    [1,2,3];
+    a=[1,[1,2],3];
+    a[1]=10;
+    
     "#
     .to_string();
     match tokenize(&program) {

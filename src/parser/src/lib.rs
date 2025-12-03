@@ -310,7 +310,7 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
                     is_bool: is_bool,
                 }));
             }
-            Tokens::OpenParenthesis => {
+            Tokens::OpenParenthesis |Tokens::OpenSquaredBrackets=> {
                 let (operations, is_bool) = parse_expression(tokens, index);
                 out.push(Stmt::Expression(ExprOperations {
                     instructions: operations,

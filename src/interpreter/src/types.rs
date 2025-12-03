@@ -6,6 +6,7 @@ use std::rc::Rc;
 pub enum Types {
     Number(f64),
     String(String),
+    Array(Rc<RefCell<Vec<Types>>>),
     // i should later have something else
 }
 impl Types {
@@ -13,6 +14,36 @@ impl Types {
         match self {
             Types::Number(n) => *n,
             Types::String(s) => s.len() as f64,
+            Types::Array(a) => a.borrow().len() as f64,
+        }
+    }
+    pub fn add(&self, other: &Types) -> Types {
+        match (self, other) {
+            (Types::Number(a), Types::Number(b)) => return Types::Number(a + b),
+            (Types::Number(a), Types::String(b)) => return Types::String(a.to_string() + b),
+            (Types::String(a), Types::Number(b)) => {
+                return Types::String(a.to_owned() + &b.to_string());
+            }
+            (Types::String(a), Types::String(b)) => {
+                return Types::String(a.to_owned() + &b.to_owned());
+            }
+            _ => match self {
+                Types::Array(a) => {
+                    let mut new = a.borrow().clone();
+                    new.push(other.clone());
+                    return Types::Array(Rc::new(RefCell::new(new)));
+                }
+                _ => match other {
+                    Types::Array(_) => {
+                        // this transforms it into an array
+                        let n = Types::Array(Rc::new(RefCell::new(vec![self.clone()])));
+                        return n.add(other);
+                    }
+                    _ => {
+                        return Types::Number(0.0);
+                    }
+                },
+            },
         }
     }
 }

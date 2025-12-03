@@ -1,5 +1,5 @@
-use crate::types::{ Interpreter, ReasonsForStopping, Types};
-use ast::{Expr, FuncCall, ModifyingOperation};
+use crate::types::{Interpreter, ReasonsForStopping, Types};
+use ast::{ArrayCall, Expr, ExprOperations, FuncCall, ModifyingOperation};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -22,10 +22,45 @@ impl Interpreter {
                 .insert(var_name.to_string(), Rc::new(RefCell::new(eval.clone())));
             i += 1;
         }
-        let (out, stop_reason) = interpreter.eval_statement( &function.body);
+        let (out, stop_reason) = interpreter.eval_statement(&function.body);
         match &stop_reason {
             ReasonsForStopping::ReturnStatement => return out,
             _ => return Types::Number(0.0),
+        }
+    }
+    fn eval_array(&mut self, array_body: &Vec<ExprOperations>) -> Types {
+        let mut args = Vec::new();
+        for expr in array_body {
+            args.push(self.eval_expression(&expr.instructions, expr.is_bool));
+        }
+        return Types::Array(Rc::new(RefCell::new(args)));
+    }
+    fn eval_array_call(&mut self, array_call: &ArrayCall) -> Types {
+        let var_opt = self.get_var(&array_call.name);
+        match &var_opt {
+            None => Types::Number(0.0),
+            Some(var_ref) => {
+                let at = self
+                    .eval_expression(&array_call.at.instructions, array_call.at.is_bool)
+                    .to_number() as usize;
+                let var = var_ref.borrow();
+                match &*var {
+                    Types::Array(arr_ref) => {
+                        let arr = arr_ref.borrow();
+                        if at < arr.len() {
+                            return arr[at].clone();
+                        }
+                        return Types::Number(0.0);
+                    }
+                    Types::String(str) => {
+                        if at < str.len() {
+                            return Types::String(str.as_bytes()[at].to_string());
+                        }
+                        return Types::Number(0.0);
+                    }
+                    _ => Types::Number(0.0),
+                }
+            }
         }
     }
     fn eval_value_parts(&mut self, current: &Expr) -> Types {
@@ -42,6 +77,8 @@ impl Interpreter {
             Expr::FuncCall(func_call) => self.eval_function(func_call),
             Expr::String(v) => Types::String(v.to_string()),
             Expr::Number(v) => Types::Number(*v),
+            Expr::Array(v) => self.eval_array(v),
+            Expr::ArrayCall(v) => return self.eval_array_call(v),
             _ => {
                 return Types::Number(0.0);
             }
@@ -63,7 +100,10 @@ impl Interpreter {
             | Expr::FuncCall(_)
             | Expr::Number(_)
             | Expr::Operations(_)
-            | Expr::String(_) => {
+            | Expr::String(_)
+            | Expr::Array(_)
+            | Expr::ArrayCall(_)
+            => {
                 let value = self.eval_value_parts(current);
                 return self.eval_not(&value, not);
             }
@@ -138,16 +178,7 @@ impl Interpreter {
         operation: &Expr,
     ) -> Types {
         match operation {
-            Expr::Add => match (value_a, value_b) {
-                (Types::Number(a), Types::Number(b)) => return Types::Number(a + b),
-                (Types::Number(a), Types::String(b)) => return Types::String(a.to_string() + b),
-                (Types::String(a), Types::Number(b)) => {
-                    return Types::String(a.to_owned() + &b.to_string());
-                }
-                (Types::String(a), Types::String(b)) => {
-                    return Types::String(a.to_owned() + &b.to_owned());
-                }
-            },
+            Expr::Add => return value_a.add(value_b),
             Expr::Subtract => match (value_a, value_b) {
                 (Types::Number(a), Types::Number(b)) => return Types::Number(a - b),
                 _ => {}
@@ -285,6 +316,29 @@ impl Interpreter {
                     }
                 };
             }
+            Expr::ArrayCallMod(arr_call_mod) => {
+                if let Some(var_ref) = self.get_var(&arr_call_mod.name) {
+                    let  var = var_ref.borrow();
+                    let at = self
+                        .eval_expression(&arr_call_mod.at.instructions, arr_call_mod.at.is_bool).to_number() as usize;
+                    let new_value = self.eval_expression(
+                        &arr_call_mod.new_value.instructions,
+                        arr_call_mod.new_value.is_bool,
+                    );
+                    match &*var{
+                        Types::Array(arr_ref)=>{
+                            let mut arr=arr_ref.borrow_mut();
+                            if at<arr.len(){
+                                arr[at]=new_value;
+                            }
+
+
+                        }
+                        _=>{}
+                        
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -300,7 +354,9 @@ impl Interpreter {
                 | Expr::FuncCall(_)
                 | Expr::Number(_)
                 | Expr::Operations(_)
-                | Expr::String(_) => {
+                | Expr::String(_)
+                | Expr::Array(_)
+                | Expr::ArrayCall(_) => {
                     match previous_operation {
                         None => {
                             // okay i obviously should avoid doing this and just
@@ -342,7 +398,7 @@ impl Interpreter {
                 Expr::NOT => {
                     is_not = true;
                 }
-                Expr::Read=>{
+                Expr::Read => {
                     todo!("read");
                 }
 

@@ -7,7 +7,9 @@ fn main() {
     [1,2,3];
     a=[1,[1,2],3];
     a[1]=10;
-    
+    print a[0];
+    print "\n";
+
     "#
     .to_string();
     match tokenize(&program) {

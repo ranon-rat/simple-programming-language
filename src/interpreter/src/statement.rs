@@ -100,6 +100,7 @@ impl Interpreter {
                         Types::String(v) => {
                             print!("{}", v)
                         }
+                        _=>{}
                     }
                 }
                 Stmt::Block(_block) => {

@@ -37,31 +37,29 @@ impl Interpreter {
     }
     fn eval_array_call(&mut self, array_call: &ArrayCall) -> Types {
         let var_opt = self.get_var(&array_call.name);
-        match &var_opt {
-            None => Types::Number(0.0),
-            Some(var_ref) => {
-                let at = self
-                    .eval_expression(&array_call.at.instructions, array_call.at.is_bool)
-                    .to_number() as usize;
-                let var = var_ref.borrow();
-                match &*var {
-                    Types::Array(arr_ref) => {
-                        let arr = arr_ref.borrow();
-                        if at < arr.len() {
-                            return arr[at].clone();
-                        }
-                        return Types::Number(0.0);
+        if let Some(var_ref) = var_opt {
+            let at = self
+                .eval_expression(&array_call.at.instructions, array_call.at.is_bool)
+                .to_number() as usize;
+            let var = var_ref.borrow();
+            match &*var {
+                Types::Array(arr_ref) => {
+                    let arr = arr_ref.borrow();
+                    if at < arr.len() {
+                        return arr[at].clone();
                     }
-                    Types::String(str) => {
-                        if at < str.len() {
-                            return Types::String(str.as_bytes()[at].to_string());
-                        }
-                        return Types::Number(0.0);
-                    }
-                    _ => Types::Number(0.0),
+                    return Types::Number(0.0);
                 }
+                Types::String(str) => {
+                    if at < str.len() {
+                        return Types::String(str.as_bytes()[at].to_string());
+                    }
+                    return Types::Number(0.0);
+                }
+                _ => {}
             }
         }
+        return Types::Number(0.0);
     }
     fn eval_value_parts(&mut self, current: &Expr) -> Types {
         match current {
@@ -73,12 +71,16 @@ impl Interpreter {
             Expr::Operations(operations) => {
                 self.eval_expression(&operations.instructions, operations.is_bool)
             }
-
             Expr::FuncCall(func_call) => self.eval_function(func_call),
             Expr::String(v) => Types::String(v.to_string()),
             Expr::Number(v) => Types::Number(*v),
             Expr::Array(v) => self.eval_array(v),
-            Expr::ArrayCall(v) => return self.eval_array_call(v),
+            Expr::ArrayCall(v) => {
+                println!("chekc this out");
+                let o = self.eval_array_call(v);
+                println!("{:?}", o);
+                return o;
+            }
             _ => {
                 return Types::Number(0.0);
             }
@@ -102,8 +104,7 @@ impl Interpreter {
             | Expr::Operations(_)
             | Expr::String(_)
             | Expr::Array(_)
-            | Expr::ArrayCall(_)
-            => {
+            | Expr::ArrayCall(_) => {
                 let value = self.eval_value_parts(current);
                 return self.eval_not(&value, not);
             }
@@ -318,24 +319,22 @@ impl Interpreter {
             }
             Expr::ArrayCallMod(arr_call_mod) => {
                 if let Some(var_ref) = self.get_var(&arr_call_mod.name) {
-                    let  var = var_ref.borrow();
+                    let var = var_ref.borrow();
                     let at = self
-                        .eval_expression(&arr_call_mod.at.instructions, arr_call_mod.at.is_bool).to_number() as usize;
+                        .eval_expression(&arr_call_mod.at.instructions, arr_call_mod.at.is_bool)
+                        .to_number() as usize;
                     let new_value = self.eval_expression(
                         &arr_call_mod.new_value.instructions,
                         arr_call_mod.new_value.is_bool,
                     );
-                    match &*var{
-                        Types::Array(arr_ref)=>{
-                            let mut arr=arr_ref.borrow_mut();
-                            if at<arr.len(){
-                                arr[at]=new_value;
+                    match &*var {
+                        Types::Array(arr_ref) => {
+                            let mut arr = arr_ref.borrow_mut();
+                            if at < arr.len() {
+                                arr[at] = new_value;
                             }
-
-
                         }
-                        _=>{}
-                        
+                        _ => {}
                     }
                 }
             }

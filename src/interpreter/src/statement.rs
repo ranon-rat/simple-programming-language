@@ -1,13 +1,11 @@
-use crate::types::{ Interpreter, ReasonsForStopping, Types};
-use ast::{Expr, ForLoop, If, Stmt, WhileLoop};
+use crate::types::{Interpreter, ReasonsForStopping, Types};
+use ast::{ ExprOperations, ForLoop, If, Stmt, WhileLoop};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 impl Interpreter {
-    fn eval_expression_change_output(&mut self, out: &mut Types, eval: &Expr) {
-        if let Expr::Operations(v) = eval {
-            *out = self.eval_expression(&v.instructions, v.is_bool);
-        }
+    fn eval_expression_change_output(&mut self, out: &mut Types, eval: &ExprOperations) {
+        *out = self.eval_expression(&eval.instructions, eval.is_bool);
     }
 
     pub fn eval_block(&mut self, lines: &Vec<Stmt>) -> (Types, ReasonsForStopping) {
@@ -49,9 +47,13 @@ impl Interpreter {
     }
     pub fn eval_for_loop(&mut self, for_loop: &ForLoop) -> (Types, ReasonsForStopping) {
         let mut interpreter = self.new_context();
-    
+
         interpreter.eval_expression(&for_loop.init, false);
-        while interpreter.eval_expression(&for_loop.condition, for_loop.is_bool).to_number() > 0.0 {
+        while interpreter
+            .eval_expression(&for_loop.condition, for_loop.is_bool)
+            .to_number()
+            > 0.0
+        {
             let (out, reason) = interpreter.eval_statement(&for_loop.body);
             match &reason {
                 ReasonsForStopping::Finished | ReasonsForStopping::ContinueStatement => {}

@@ -1,12 +1,14 @@
 use std::fmt::Debug;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Tokens {
     Statement(String), // In case they write a string for a variable or anything else
     String(String),    // "example"
     // punctuators
-    OpenParenthesis,    // (
-    CloseParenthesis,   // )
+    OpenParenthesis,  // (
+    CloseParenthesis, // )
+    OpenSquaredBrackets,
+    CloseSquaredBrackets,
     OpenCurlyBrackets,  // {
     CloseCurlyBrackets, // }
     Comma,              // ,
@@ -27,7 +29,7 @@ pub enum Tokens {
     Increment, // ++
     Decrement, // --
     // logic operators
-    EqualsTo,            // ==
+    EqualsTo,          // ==
     IsDifferent,       // !=
     SmallerThan,       // <
     SmallerOrEqual,    // <=
@@ -40,7 +42,6 @@ pub enum Tokens {
     // BITWISE
     AndBitwise, // &
     OrBitwise,  // |
-    
 
     // debugging
     Unkown,
@@ -53,7 +54,6 @@ pub enum LexerError {
     Unreachable,
 }
 
-
 pub fn get_single_token(cell: char) -> Tokens {
     match cell {
         '(' => Tokens::OpenParenthesis,
@@ -61,6 +61,8 @@ pub fn get_single_token(cell: char) -> Tokens {
         '{' => Tokens::OpenCurlyBrackets,
         '}' => Tokens::CloseCurlyBrackets,
         ',' => Tokens::Comma,
+        '[' => Tokens::OpenSquaredBrackets,
+        ']' => Tokens::CloseSquaredBrackets,
         _ => panic!("You shouldnt use this in this case \"{cell}\""),
     }
 }

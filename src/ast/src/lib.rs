@@ -31,6 +31,7 @@ pub struct VarAssign {
 pub enum Expr {
     Number(f64),
     String(String),
+    Array(Vec<ExprOperations>),
     //
     Add,
     Subtract,
@@ -104,9 +105,9 @@ pub struct WhileLoop{
 }
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    Expression(Expr),
+    Expression(ExprOperations),
     Print(ExprOperations),  // print "", print x, print func(), print 12+1, print (1+2+3)
-    Return(Expr), // return, return "all good", return 123, return a==b, etc
+    Return(ExprOperations), // return, return "all good", return 123, return a==b, etc
     Continue,
     Break,
     Block(Vec<Stmt>),

@@ -448,7 +448,7 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                     backslash = true;
                 }
             }
-            ',' | '(' | ')' | '{' | '}' => {
+            ',' | '(' | ')' | '{' | '}' | '[' | ']' => {
                 add_statement(&mut out, &mut string_part, inside_string, inside_comment);
                 let token = get_single_token(cell);
                 backslash = false;

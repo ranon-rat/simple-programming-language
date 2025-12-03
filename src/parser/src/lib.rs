@@ -52,7 +52,7 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
                     println!("else statement {:?}", program_tokens[i]);
 
                     else_then = parse(program_tokens, &mut i);
-                    i+=1;
+                    i += 1;
                     break;
                 }
                 "elif" => {
@@ -113,22 +113,23 @@ fn parse_def_args_function(program_tokens: &Vec<Tokens>, index: &mut usize) -> V
     return arguments;
 }
 fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
-    match &program_tokens[*index] {
+    let mut i = *index;
+    match &program_tokens[i] {
         Tokens::Statement(func_name) => {
             // func (
-            dbg!(&index, &program_tokens[*index]);
+            dbg!(&i, &program_tokens[i]);
 
-            *index += 2;
-            dbg!(&index, &program_tokens[*index]);
+            i += 2;
+            dbg!(&i, &program_tokens[i]);
 
-            let arguments = parse_def_args_function(program_tokens, index);
-            dbg!(&index, &program_tokens[*index]);
+            let arguments = parse_def_args_function(program_tokens, &mut i);
+            dbg!(&i, &program_tokens[i]);
 
-            *index += 2;
-            dbg!(&index, &program_tokens[*index]);
+            i += 2;
+            dbg!(&i, &program_tokens[i]);
 
-            let body = parse(program_tokens, index);
-
+            let body = parse(program_tokens, &mut i);
+            *index = i - 1;
             out.push(Stmt::FuncAssign(FuncAssign {
                 name: func_name.to_string(),
                 arguments,
@@ -141,6 +142,7 @@ fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
 // we start from ( x
 fn parse_init_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Expr> {
     let mut out: Vec<Expr> = Vec::new();
+
     while *index < program_tokens.len() {
         let current = &program_tokens[*index];
         println!("init for loop {:?}", current);
@@ -164,26 +166,29 @@ fn parse_init_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<E
         }
         *index += 1;
     }
+
     return out;
 }
 
 fn parse_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
     // we start after the for(
     // i=1
-    println!("CHECK THIS{:?}", &program_tokens[*index]);
+    let mut i = *index;
+    println!("CHECK THIS{:?}", &program_tokens[i]);
 
-    let init = parse_init_for_loop(program_tokens, index);
+    let init = parse_init_for_loop(program_tokens, &mut i);
     // ;
-    *index += 1;
+    i += 1;
     // i<10
-    let (condition, is_bool) = parse_expression(program_tokens, index);
+    let (condition, is_bool) = parse_expression(program_tokens, &mut i);
     // ;
-    *index += 1;
+    i += 1;
     // i++
-    let increment = parse_init_for_loop(program_tokens, index);
+    let increment = parse_init_for_loop(program_tokens, &mut i);
     // )
-    *index += 2;
-    let body = parse(program_tokens, index);
+    i += 2;
+    let body = parse(program_tokens, &mut i);
+    *index = i - 1;
     out.push(Stmt::ForLoop(ForLoop {
         init,
         condition: condition,
@@ -194,9 +199,11 @@ fn parse_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec
 }
 fn parse_while_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec<Stmt>) {
     // so while(
-    let (condition, is_bool) = parse_expression(program_tokens, index);
-    *index += 2; // ){
-    let body = parse(program_tokens, index);
+    let mut i = *index;
+    let (condition, is_bool) = parse_expression(program_tokens, &mut i);
+    i += 2; // ){
+    let body = parse(program_tokens, &mut i);
+    *index = i - 1;
     out.push(Stmt::WhileLoop(WhileLoop {
         condition: condition,
         body,
@@ -231,17 +238,19 @@ fn handle_statement(
             "return" => {
                 let has_next = *index + 1 < program_tokens.len();
                 if !has_next {
-                    return out.push(Stmt::Return(Expr::Operations(ExprOperations {
+                    return out.push(Stmt::Return(ExprOperations {
                         instructions: Vec::new(),
                         is_bool: false,
-                    })));
+                    }));
                 }
-                *index += 1;
-                let (returning, is_bool) = parse_expression(program_tokens, index);
-                return out.push(Stmt::Return(Expr::Operations(ExprOperations {
+                let mut i = *index;
+                i += 1;
+                let (returning, is_bool) = parse_expression(program_tokens, &mut i);
+                *index = i - 1;
+                return out.push(Stmt::Return(ExprOperations {
                     instructions: returning,
                     is_bool: is_bool,
-                })));
+                }));
             }
 
             "print" => {
@@ -264,17 +273,17 @@ fn handle_statement(
             _ => {
                 let has_next = *index + 1 < program_tokens.len();
                 if !has_next {
-                    return out.push(Stmt::Expression(Expr::Operations(ExprOperations {
+                    return out.push(Stmt::Expression(ExprOperations {
                         instructions: Vec::new(),
                         is_bool: false,
-                    })));
+                    }));
                 }
 
                 let (expr_out, is_bool) = parse_expression(program_tokens, index);
-                out.push(Stmt::Expression(Expr::Operations(ExprOperations {
+                out.push(Stmt::Expression(ExprOperations {
                     instructions: expr_out,
                     is_bool,
-                })));
+                }));
             }
         }
     }
@@ -296,17 +305,17 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
             }
             Tokens::String(_) => {
                 let (operations, is_bool) = parse_expression(tokens, index);
-                out.push(Stmt::Expression(Expr::Operations(ExprOperations {
+                out.push(Stmt::Expression(ExprOperations {
                     instructions: operations,
                     is_bool: is_bool,
-                })));
+                }));
             }
             Tokens::OpenParenthesis => {
                 let (operations, is_bool) = parse_expression(tokens, index);
-                out.push(Stmt::Expression(Expr::Operations(ExprOperations {
+                out.push(Stmt::Expression(ExprOperations {
                     instructions: operations,
                     is_bool,
-                })));
+                }));
             }
             Tokens::Statement(_) => {
                 handle_statement(cell, tokens, &mut out, index);

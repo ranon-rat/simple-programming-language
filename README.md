@@ -15,7 +15,7 @@ This is a prototype and not intended for long-term maintenance. Once the example
 While the current scope is intentionally limited, potential additions include:
 
 - **Module system**: Basic support for code organization across files
-- **Arrays**.
+- [x] **Arrays**.
 - **FFI (Foreign Function Interface)**: While interesting, this would likely be better implemented in a C++ version of the interpreter
 
 

@@ -1,4 +1,7 @@
-use ast::{Expr, ExprOperations, FuncCall, ModifyingOperation, VarAssign, VarCalling};
+use ast::{
+    ArrayCall, ArrayCallMod, Expr, ExprOperations, FuncCall, ModifyingOperation, VarAssign,
+    VarCalling,
+};
 use lexer::tokens::Tokens;
 
 pub fn parse_argument_functions(
@@ -26,6 +29,27 @@ pub fn parse_argument_functions(
         *index += 1;
     }
 
+    return arguments;
+}
+pub fn parse_argument_array(
+    program_tokens: &Vec<Tokens>,
+    index: &mut usize,
+) -> Vec<ExprOperations> {
+    let mut arguments = Vec::new();
+    while *index < program_tokens.len() {
+        let current = &program_tokens[*index];
+        match current {
+            Tokens::CloseSquaredBrackets => return arguments,
+            _ => {
+                let (arg, is_bool) = parse_expression(program_tokens, index);
+                arguments.push(ExprOperations {
+                    instructions: arg,
+                    is_bool: (is_bool),
+                });
+            }
+        }
+        *index += 1;
+    }
     return arguments;
 }
 fn parse_statement_expr(
@@ -85,6 +109,46 @@ fn parse_statement_expr(
                                 name: variable_name.to_string(),
                                 arguments: arguments,
                             }));
+                        }
+                        Tokens::OpenSquaredBrackets => {
+                            *index += 2;
+                            let (at, is_bool) = parse_expression(program_tokens, index);
+                            let has_next = *index + 2 < program_tokens.len();
+                            if !has_next {
+                                out.push(Expr::ArrayCall(ArrayCall {
+                                    name: variable_name.to_string(),
+                                    at: ExprOperations {
+                                        instructions: at.clone(),
+                                        is_bool: is_bool,
+                                    },
+                                }));
+                            }
+                            *index += 1;
+                            match &program_tokens[*index] {
+                                Tokens::Equals => {
+                                    *index += 1;
+                                    let (new_val, new_val_bool) =
+                                        parse_expression(program_tokens, index);
+                                    out.push(Expr::ArrayCallMod(ArrayCallMod {
+                                        name: variable_name.to_string(),
+                                        at: ExprOperations {
+                                            instructions: at.clone(),
+                                            is_bool: is_bool,
+                                        },
+                                        new_value: ExprOperations {
+                                            instructions: new_val.clone(),
+                                            is_bool: new_val_bool,
+                                        },
+                                    }));
+                                }
+                                _ => out.push(Expr::ArrayCall(ArrayCall {
+                                    name: variable_name.to_string(),
+                                    at: ExprOperations {
+                                        instructions: at.clone(),
+                                        is_bool: is_bool,
+                                    },
+                                })),
+                            }
                         }
                         Tokens::AddTo => {
                             // +=
@@ -279,6 +343,7 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
     while *index < program_tokens.len() {
         let current = &program_tokens[*index];
         let mut we_coming_from_parenthesis = false;
+        let mut we_coming_from_squared_brackets = false;
 
         match current {
             // arithmetic operations
@@ -368,7 +433,16 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
                     return (normalize_parse_expression(&out), is_bool);
                 }
             }
-            Tokens::CloseParenthesis | Tokens::SemmiColon | Tokens::Comma | _ => {
+            Tokens::OpenSquaredBrackets => {
+                let arguments = parse_argument_array(program_tokens, index);
+                out.push(Expr::Array(arguments.clone()));
+                we_coming_from_squared_brackets = true;
+            }
+            Tokens::CloseParenthesis
+            | Tokens::CloseSquaredBrackets
+            | Tokens::SemmiColon
+            | Tokens::Comma
+            | _ => {
                 // },{}
                 return (normalize_parse_expression(&out), is_bool);
             }
@@ -378,6 +452,11 @@ pub fn parse_expression(program_tokens: &Vec<Tokens>, index: &mut usize) -> (Vec
                 Tokens::SemmiColon | Tokens::Comma | Tokens::CloseCurlyBrackets => {
                     // },{}
                     break;
+                }
+                Tokens::CloseSquaredBrackets => {
+                    if !we_coming_from_squared_brackets {
+                        break;
+                    }
                 }
                 Tokens::CloseParenthesis => {
                     if !we_coming_from_parenthesis {

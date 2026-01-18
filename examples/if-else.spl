@@ -1,7 +1,8 @@
 print "what is your name?\n";
-name=read();
+name=read;
+print name;
 blacklisted="ulises";
-if (name==blacklist){
+if (name==blacklisted){
     print "not allowed\n";
 }
 elif(name=="tsoding"){
@@ -11,7 +12,4 @@ elif(name=="tsoding"){
    print name;
    print "\n";
 }
-
-
-
 // maybe i should just remplace the 

@@ -41,7 +41,7 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
     let mut else_then: Vec<Stmt> = Vec::new();
     let mut i = *index + 1; // exploring
     while i < program_tokens.len() {
-        println!("if statement{:?}", &program_tokens[i]);
+        //  println!("if statement{:?}", &program_tokens[i]);
         match &program_tokens[i] {
             Tokens::Statement(v) => match v.as_str() {
                 "else" => {
@@ -49,7 +49,7 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
                         break;
                     }
                     i += 2;
-                    println!("else statement {:?}", program_tokens[i]);
+                    //  println!("else statement {:?}", program_tokens[i]);
 
                     else_then = parse(program_tokens, &mut i);
                     i += 1;
@@ -62,7 +62,7 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
                         break;
                     }
                     i += 2;
-                    println!("elif statement {:?}", program_tokens[i]);
+                    // println!("elif statement {:?}", program_tokens[i]);
 
                     let (elif_condition, is_bool) = parse_expression(program_tokens, &mut i);
                     println!("elif statement {:?}", program_tokens[i]);
@@ -129,7 +129,9 @@ fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
             dbg!(&i, &program_tokens[i]);
 
             let body = parse(program_tokens, &mut i);
-            *index = i - 1;
+            dbg!(&body);
+            println!("{i} {:?}",program_tokens[i]);
+            *index = i ;
             out.push(Stmt::FuncAssign(FuncAssign {
                 name: func_name.to_string(),
                 arguments,
@@ -310,7 +312,7 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
                     is_bool: is_bool,
                 }));
             }
-            Tokens::OpenParenthesis |Tokens::OpenSquaredBrackets=> {
+            Tokens::OpenParenthesis | Tokens::OpenSquaredBrackets => {
                 let (operations, is_bool) = parse_expression(tokens, index);
                 out.push(Stmt::Expression(ExprOperations {
                     instructions: operations,

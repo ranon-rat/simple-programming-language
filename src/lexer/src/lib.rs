@@ -400,7 +400,7 @@ pub fn tokenize(program: &String) -> Result<Vec<Tokens>, LexerError> {
                 );
                 backslash = false;
             }
-            ' ' | '\n' | '\t' => {
+            ' ' | '\n' | '\t'| '\r' => {
                 add_statement(&mut out, &mut string_part, inside_string, inside_comment);
 
                 backslash = false;

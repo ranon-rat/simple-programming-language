@@ -1,6 +1,7 @@
 a=1;
 b=1;
 print a+b;
+print "\n";
 if a==2{
    a=b;    
 }elif (a==3) {
@@ -8,3 +9,10 @@ if a==2{
 }else {
     a=b;
 }
+
+print "a: ";
+print a;
+print "\n";
+print "b: ";
+print b;
+print "\n";

@@ -1,8 +1,8 @@
 use crate::types::{Interpreter, ReasonsForStopping, Types};
+use crate::utils::get_input;
 use ast::{ArrayCall, Expr, ExprOperations, FuncCall, ModifyingOperation};
 use std::cell::RefCell;
 use std::rc::Rc;
-
 impl Interpreter {
     fn eval_function(&mut self, func_call: &FuncCall) -> Types {
         let mut interpreter = self.new_context();
@@ -395,7 +395,10 @@ impl Interpreter {
                     is_not = true;
                 }
                 Expr::Read => {
-                    todo!("read");
+                    // okay maybe there should be a better way but this is better than well yeah 
+                    // this is better than most shit so fuck off if you have any opinion about this, 
+                    // you shouldnt use this in any weird way you should separate that.
+                    return get_input();
                 }
 
                 _ => {

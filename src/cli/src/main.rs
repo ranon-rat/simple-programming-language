@@ -17,7 +17,7 @@ fn main() {
             return;
         }
     };
-    println!("program output:\n{program}");
+    //println!("program output:\n{program}");
     match tokenize(&program) {
         Err(v) => match v {
             LexerError::OutOfBounds => println!("Out of bounds "),
@@ -28,14 +28,13 @@ fn main() {
             //for i in 0..v.len() {
             //    println!("{i} {:?}", v[i]);
             //}
-            println!();
             let mut index = 0;
             let statements = parse(&v, &mut index);
-            dbg!(&statements);
-            println!();
+            //dbg!(&statements);
+            //println!();
             let mut interpreter = Interpreter::new();
-            let (ret, _) = interpreter.eval_statement(&statements);
-            println!("OUT {:?}", ret);
+            /*let (ret, _) =*/ interpreter.eval_statement(&statements);
+            //println!("OUT {:?}", ret);
         }
     }
 }

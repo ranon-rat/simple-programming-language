@@ -65,14 +65,14 @@ fn parse_if_statement(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
                     // println!("elif statement {:?}", program_tokens[i]);
 
                     let (elif_condition, is_bool) = parse_expression(program_tokens, &mut i);
-                    println!("elif statement {:?}", program_tokens[i]);
+                 //   println!("elif statement {:?}", program_tokens[i]);
 
                     if i + 2 >= program_tokens.len() {
                         // ){
                         break;
                     }
                     i += 2;
-                    println!("elif statement {:?}", program_tokens[i]);
+                 //   println!("elif statement {:?}", program_tokens[i]);
 
                     let elif_body = parse(program_tokens, &mut i);
 
@@ -117,20 +117,20 @@ fn parse_def_function(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut
     match &program_tokens[i] {
         Tokens::Statement(func_name) => {
             // func (
-            dbg!(&i, &program_tokens[i]);
+        //    dbg!(&i, &program_tokens[i]);
 
             i += 2;
-            dbg!(&i, &program_tokens[i]);
+          //  dbg!(&i, &program_tokens[i]);
 
             let arguments = parse_def_args_function(program_tokens, &mut i);
-            dbg!(&i, &program_tokens[i]);
+            //dbg!(&i, &program_tokens[i]);
 
             i += 2;
-            dbg!(&i, &program_tokens[i]);
+            //dbg!(&i, &program_tokens[i]);
 
             let body = parse(program_tokens, &mut i);
-            dbg!(&body);
-            println!("{i} {:?}",program_tokens[i]);
+            //dbg!(&body);
+        //  println!("{i} {:?}",program_tokens[i]);
             *index = i ;
             out.push(Stmt::FuncAssign(FuncAssign {
                 name: func_name.to_string(),
@@ -147,7 +147,7 @@ fn parse_init_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize) -> Vec<E
 
     while *index < program_tokens.len() {
         let current = &program_tokens[*index];
-        println!("init for loop {:?}", current);
+       // println!("init for loop {:?}", current);
         match current {
             Tokens::SemmiColon | Tokens::CloseParenthesis => {
                 return out;
@@ -176,7 +176,7 @@ fn parse_for_loop(program_tokens: &Vec<Tokens>, index: &mut usize, out: &mut Vec
     // we start after the for(
     // i=1
     let mut i = *index;
-    println!("CHECK THIS{:?}", &program_tokens[i]);
+  //  println!("CHECK THIS{:?}", &program_tokens[i]);
 
     let init = parse_init_for_loop(program_tokens, &mut i);
     // ;
@@ -295,7 +295,7 @@ pub fn parse(tokens: &Vec<Tokens>, index: &mut usize) -> Vec<Stmt> {
 
     while *index < tokens.len() {
         let cell = &tokens[*index];
-        println!("{:?}", cell);
+       // println!("{:?}", cell);
         match cell {
             Tokens::OpenCurlyBrackets => {
                 *index += 1;

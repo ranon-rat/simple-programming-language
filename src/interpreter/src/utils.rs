@@ -7,7 +7,7 @@ pub fn get_input() -> Types {
         Err(_no_updates_is_fine) => {}
     }
 
-    println!("{}", input.trim());
+  //  println!("{}", input.trim());
     let i = input.trim().to_string();
     if i.len() == 0 {
         return Types::String("".to_string());
